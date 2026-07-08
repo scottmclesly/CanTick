@@ -33,5 +33,7 @@ namespace canlink {
 
   uint32_t rxCount();
   uint32_t txCount();
-  uint32_t dropCount();   // outbound-queue-full + MCP RX-overflow
+  uint32_t dropCount();   // MCP2515 RX FIFO overflow events (edge-counted).
+                          // The outbound-queue-full count lives in net_transport;
+                          // the heartbeat reports the sum as the contract `drop`.
 }

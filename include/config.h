@@ -28,8 +28,14 @@
 // ── Storage ──────────────────────────────────────────────────────────────────
 #define CANTICK_NVS_NS            "cantick"
 
+// ── Status LED (XIAO ESP32-S3 onboard user LED, GPIO21, active-LOW) ──────────
+#define CANTICK_STATUS_LED_PIN    LED_BUILTIN
+#define CANTICK_STATUS_LED_ACTIVE_LOW 1
+
 // ── Tuning ───────────────────────────────────────────────────────────────────
 #define CANTICK_TX_QUEUE_LEN      64
 #define CANTICK_RX_QUEUE_LEN      128
 #define CANTICK_WIFI_RETRY_MS     3000
 #define CANTICK_TCP_RETRY_MS      2000
+#define CANTICK_TCP_BACKOFF_MAX_MS 30000    // cap for exponential reconnect backoff
+#define CANTICK_EFLG_POLL_MS      50        // how often the RX task samples MCP EFLG

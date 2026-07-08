@@ -14,6 +14,7 @@
 #include "can_link.h"
 #include "net_transport.h"
 #include "provisioning.h"
+#include "status_led.h"
 
 // RX sink: bus frame -> TCP send queue. Runs in the CAN core-1 task context.
 static void onBusFrame(const CanFrame &f) { net::enqueueRx(f); }
@@ -22,6 +23,8 @@ void setup() {
   Serial.begin(115200);          // native USB CDC — the provisioning channel
   delay(200);
 
+  led::begin();                  // status LED task (starts in BOOTING)
+
   nvs::begin();
   CtConfig c = nvs::load();
 
@@ -29,6 +32,7 @@ void setup() {
   // crystal really is 16 MHz (CANTICK_MCP_CLOCK).
   if (!canlink::begin(c.bitrate, c.listen)) {
     Serial.println("[cantick] MCP2515 init failed");   // plain log; Pi ignores non-CTK1 lines
+    led::fault(true);            // hard fault: fast blink until a good CAN init
   }
   canlink::onFrame(onBusFrame);
   canlink::startRxTask();        // pinned to core 1

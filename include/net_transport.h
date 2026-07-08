@@ -10,7 +10,12 @@ namespace net {
   int  rssi();
 
   // Called by the CAN RX sink: queue a received frame for the TCP stream.
+  // Drop-oldest on overflow (bounded ring buffer); see dropCount().
   void enqueueRx(const CanFrame &f);
+
+  // Frames dropped because the outbound queue was full (drop-oldest). Combined
+  // with canlink::dropCount() (MCP overflow) this is the contract `drop` field.
+  uint32_t dropCount();
 
   // Applied by the provisioning layer after COMMIT.
   void applyCredentials();      // re-read NVS and (re)connect

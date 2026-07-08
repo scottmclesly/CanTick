@@ -11,7 +11,8 @@ namespace {
   volatile bool g_listen    = false;
   volatile bool g_open      = false;
   portMUX_TYPE g_mux        = portMUX_INITIALIZER_UNLOCKED;
-  uint32_t    g_rx = 0, g_tx = 0, g_drop = 0;
+  uint32_t    g_rx = 0, g_tx = 0, g_overflow = 0;
+  bool        g_prevOvr     = false;   // edge state for MCP RX-overflow detection
 
   // coryjfowler speed code from a numeric bitrate. Extend as needed.
   bool speedCode(uint32_t bitrate, uint8_t &code) {
@@ -28,17 +29,32 @@ namespace {
     }
   }
 
+  // Sample the MCP2515 EFLG register for an RX FIFO overflow (RX0OVR/RX1OVR).
+  // The coryjfowler driver exposes getError() (reads EFLG) but no public flag
+  // clear, so we count on the rising edge: one increment per overflow *event*
+  // (a lower bound on frames lost inside the controller). Under a dedicated-core
+  // drain at 250 k this should stay 0; the dominant drop point is the outbound
+  // network queue, counted separately in net_transport.
+  void pollOverflow() {
+    bool ovr = (mcp.getError() & (MCP_EFLG_RX0OVR | MCP_EFLG_RX1OVR)) != 0;
+    if (ovr && !g_prevOvr) {
+      taskENTER_CRITICAL(&g_mux); g_overflow++; taskEXIT_CRITICAL(&g_mux);
+    }
+    g_prevOvr = ovr;
+  }
+
   // The drain: whole-core polling loop. On the S3 this is pinned to core 1 so it
   // never contends with WiFi/TCP (core 0). Fast enough for a 250 k N2K bus.
   void rxTask(void *) {
     CanFrame f;
+    uint32_t lastEflg = 0;
     for (;;) {
       if (g_open && mcp.checkReceive() == CAN_MSGAVAIL) {
         unsigned long id = 0; byte ext = 0, len = 0;
         if (mcp.readMsgBuf(&id, &ext, &len, f.data) == CAN_OK) {
           f.id  = (uint32_t)id;
           f.ext = ext ? 1 : 0;
-          f.rtr = mcp.isRemoteRequest() ? 1 : 0;
+          f.rtr = 0;
           f.dlc = len > 8 ? 8 : len;
           taskENTER_CRITICAL(&g_mux); g_rx++; taskEXIT_CRITICAL(&g_mux);
           if (g_sink) g_sink(f);
@@ -47,7 +63,9 @@ namespace {
       } else {
         vTaskDelay(1);   // ~1 ms yield when the bus is idle
       }
-      // TODO(hw): read MCP2515 EFLG (RX0OVR/RX1OVR) and fold into g_drop.
+      // Sample the overflow flag on a light cadence (SPI read, off the hot path).
+      uint32_t now = millis();
+      if (g_open && now - lastEflg >= CANTICK_EFLG_POLL_MS) { pollOverflow(); lastEflg = now; }
     }
   }
 }
@@ -81,12 +99,14 @@ bool send(const CanFrame &f) {
   if (g_listen || !g_open) return false;            // SAFETY: no TX when listening
   byte r = mcp.sendMsgBuf(f.id, f.ext ? 1 : 0, f.dlc, (byte *)f.data);
   if (r == CAN_OK) { taskENTER_CRITICAL(&g_mux); g_tx++; taskEXIT_CRITICAL(&g_mux); return true; }
-  taskENTER_CRITICAL(&g_mux); g_drop++; taskEXIT_CRITICAL(&g_mux);
+  // A failed bus TX is not a "dropped RX frame": the contract's `drop` field
+  // counts frames lost on the way to the Pi (overflow / outbound queue full),
+  // so a TX error is reported only via the send() return, not folded into drop.
   return false;
 }
 
 uint32_t rxCount()   { return g_rx; }
 uint32_t txCount()   { return g_tx; }
-uint32_t dropCount() { return g_drop; }
+uint32_t dropCount() { return g_overflow; }   // MCP2515 RX FIFO overflow events
 
 }  // namespace canlink

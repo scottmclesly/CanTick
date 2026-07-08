@@ -2,6 +2,7 @@
 #include "config.h"
 #include "slcan.h"
 #include "nvs_store.h"
+#include "status_led.h"
 #include <WiFi.h>
 #include <WiFiUdp.h>
 #include <ESPmDNS.h>
@@ -11,8 +12,13 @@
 namespace {
   WiFiClient   g_tcp;
   WiFiUDP      g_udp;
-  QueueHandle_t g_rxq = nullptr;    // CanFrame -> TCP stream
+  QueueHandle_t g_rxq = nullptr;    // CanFrame -> TCP stream (bounded ring buffer)
   bool         g_chanOpen = false;  // SLCAN channel opened by slcand
+  bool         g_mdnsUp   = false;  // MDNS.begin() succeeded (init once per link)
+  IPAddress    g_piIp;              // Pi address resolved by netTask, reused by heartbeat
+  volatile uint32_t g_netDrop = 0;  // outbound-queue-full drops (single writer: RX task)
+
+  const IPAddress ZERO_IP((uint32_t)0);
 
   // ── WiFi: try primary station, then fall back to the Pi AP ──────────────
   bool connectWiFi() {
@@ -33,14 +39,28 @@ namespace {
     return WiFi.status() == WL_CONNECTED;
   }
 
+  // Bring mDNS up exactly once while WiFi is connected (was previously re-begun
+  // on every resolve, from two tasks — a needless race).
+  void ensureMdns() {
+    if (g_mdnsUp || WiFi.status() != WL_CONNECTED) return;
+    if (MDNS.begin(nvs::deviceName().c_str())) g_mdnsUp = true;
+  }
+  void dropMdns() {
+    if (g_mdnsUp) { MDNS.end(); g_mdnsUp = false; }
+  }
+
+  // Resolve the Pi: mDNS `scottina` on the .local domain, else the fixed AP
+  // gateway. Only netTask calls this; the heartbeat reuses the cached result.
   IPAddress resolvePi() {
     IPAddress ip;
-    // 1) mDNS scottina.local
-    if (MDNS.begin(nvs::deviceName().c_str())) {
-      ip = MDNS.queryHost(String(CANTICK_PI_HOST).c_str());
-      if (ip) return ip;
+    ensureMdns();
+    if (g_mdnsUp) {
+      String host = CANTICK_PI_HOST;              // "scottina.local"
+      int dot = host.indexOf(".local");
+      if (dot > 0) host = host.substring(0, dot); // ESPmDNS wants the bare label
+      ip = MDNS.queryHost(host.c_str());
+      if (ip != ZERO_IP) return ip;
     }
-    // 2) fixed AP gateway fallback
     ip.fromString(CANTICK_PI_FALLBACK_IP);
     return ip;
   }
@@ -49,13 +69,17 @@ namespace {
   void handleLine(const String &line) {
     slcan::ParseResult pr = slcan::parseLine(line);
     switch (pr.action) {
-      case slcan::SET_BITRATE: canlink::begin(pr.bitrate, canlink::isListenOnly()); break;
+      case slcan::SET_BITRATE:
+        led::fault(!canlink::begin(pr.bitrate, canlink::isListenOnly()));  // clear fault on good re-init
+        break;
       case slcan::OPEN:        canlink::setListenOnly(false); g_chanOpen = true;    break;
       case slcan::OPEN_LISTEN: canlink::setListenOnly(true);  g_chanOpen = true;    break;
       case slcan::CLOSE:       g_chanOpen = false;                                  break;
       case slcan::TX_FRAME:
-        // SAFETY: canlink::send() no-ops in listen-only mode.
-        canlink::send(pr.frame);
+        // SAFETY INVARIANT (PROTOCOL §1/§6): listen-only transmits NOTHING and
+        // NAKs the frame (BELL). Otherwise hand it to the single TX primitive.
+        if (canlink::isListenOnly()) pr.reply = String('\a');
+        else                         canlink::send(pr.frame);
         break;
       default: break;
     }
@@ -63,14 +87,28 @@ namespace {
   }
 
   void netTask(void *) {
-    String rxLine;
+    String   rxLine;
+    uint32_t backoff = CANTICK_TCP_RETRY_MS;
     for (;;) {
-      if (WiFi.status() != WL_CONNECTED) { connectWiFi(); delay(CANTICK_WIFI_RETRY_MS); continue; }
+      if (WiFi.status() != WL_CONNECTED) {
+        led::set(led::WIFI);
+        dropMdns();                       // stale after a disconnect; re-begin on reconnect
+        connectWiFi();
+        delay(CANTICK_WIFI_RETRY_MS);
+        continue;
+      }
 
       if (!g_tcp.connected()) {
-        IPAddress pi = resolvePi();
-        if (!g_tcp.connect(pi, CANTICK_SLCAN_TCP_PORT)) { delay(CANTICK_TCP_RETRY_MS); continue; }
-        rxLine = "";
+        led::set(led::NO_PI);
+        g_piIp = resolvePi();
+        if (!g_tcp.connect(g_piIp, CANTICK_SLCAN_TCP_PORT)) {
+          delay(backoff);
+          uint32_t next = backoff * 2;    // exponential backoff, capped
+          backoff = next > CANTICK_TCP_BACKOFF_MAX_MS ? CANTICK_TCP_BACKOFF_MAX_MS : next;
+          continue;
+        }
+        backoff = CANTICK_TCP_RETRY_MS;   // reset on a good connect
+        rxLine  = "";
       }
 
       // slcand -> us: read available bytes, split on '\r'
@@ -85,6 +123,10 @@ namespace {
       while (g_chanOpen && g_rxq && xQueueReceive(g_rxq, &f, 0) == pdTRUE) {
         g_tcp.print(slcan::encodeFrame(f));
       }
+
+      // reflect the live state on the status LED
+      led::set(g_chanOpen ? (canlink::isListenOnly() ? led::LISTEN : led::STREAMING)
+                          : led::NO_PI);
       delay(1);
     }
   }
@@ -95,15 +137,17 @@ namespace {
       if (WiFi.status() == WL_CONNECTED) {
         char buf[220];
         const char *mode = !g_chanOpen ? "closed" : (canlink::isListenOnly() ? "listen" : "normal");
+        uint32_t drop = canlink::dropCount() + g_netDrop;   // MCP overflow + queue-full
         snprintf(buf, sizeof(buf),
           "{\"v\":%d,\"name\":\"%s\",\"fw\":\"%s\",\"up\":%lu,\"bitrate\":%lu,"
           "\"mode\":\"%s\",\"rx\":%lu,\"tx\":%lu,\"drop\":%lu,\"rssi\":%d}",
           CANTICK_CONTRACT_VERSION, nvs::deviceName().c_str(), CANTICK_FW_VERSION,
           (unsigned long)(millis() / 1000), (unsigned long)nvs::load().bitrate,
           mode, (unsigned long)canlink::rxCount(), (unsigned long)canlink::txCount(),
-          (unsigned long)canlink::dropCount(), WiFi.RSSI());
-        IPAddress pi = resolvePi();
-        g_udp.beginPacket(pi, CANTICK_HEARTBEAT_UDP_PORT);
+          (unsigned long)drop, WiFi.RSSI());
+        IPAddress dst = g_piIp;
+        if (dst == ZERO_IP) dst.fromString(CANTICK_PI_FALLBACK_IP);
+        g_udp.beginPacket(dst, CANTICK_HEARTBEAT_UDP_PORT);
         g_udp.write((const uint8_t *)buf, strlen(buf));
         g_udp.endPacket();
       }
@@ -126,11 +170,18 @@ int  rssi()          { return WiFi.RSSI(); }
 
 void enqueueRx(const CanFrame &f) {
   if (!g_rxq) return;
-  if (xQueueSend(g_rxq, &f, 0) != pdTRUE) {
-    // queue full: frame dropped. Counted via canlink drop path in a later rev.
+  if (xQueueSend(g_rxq, &f, 0) == pdTRUE) return;
+  // Queue full → drop-oldest: discard the stalest frame to make room, count it,
+  // then enqueue the fresh one. Keeps latency bounded under a network stall.
+  CanFrame stale;
+  if (xQueueReceive(g_rxq, &stale, 0) == pdTRUE) {
+    g_netDrop = g_netDrop + 1;         // single writer (the CAN RX task)
+    xQueueSend(g_rxq, &f, 0);
   }
 }
 
-void applyCredentials() { WiFi.disconnect(); connectWiFi(); }
+uint32_t dropCount() { return g_netDrop; }
+
+void applyCredentials() { dropMdns(); WiFi.disconnect(); connectWiFi(); }
 
 }  // namespace net
