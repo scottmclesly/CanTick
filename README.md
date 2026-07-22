@@ -1,4 +1,5 @@
 # CanTick
+<img width="1149" height="966" alt="CanTick" src="https://github.com/user-attachments/assets/abbab9e1-0f37-4712-96e0-4cf7be3a8f86" />
 
 **A remote CAN node that makes a physical CAN bus appear on a Raspberry Pi as a
 real SocketCAN interface — over WiFi.**
