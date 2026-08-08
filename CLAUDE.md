@@ -109,10 +109,16 @@ build uses PlatformIO with the Arduino framework.
 
 ### Host tests
 
-Host tests need `-e native`. The `native` environment uses Unity, and
-`test_build_src` stays off. No Arduino source reaches the host compiler, thus a
-unit under test must be pure. `slcan.cpp` meets that rule. Keep the `matrix.cpp`
-rendering code to the same rule.
+Host tests need `-e native`. The `native` environment uses Unity. Its
+`build_src_filter` is an allowlist. It names each pure unit that the host build
+compiles, and it excludes every other file in `src/`. No Arduino source reaches
+the host compiler, thus a unit in the list must have no I/O.
+
+`matrix.cpp` is in the list. `slcan.cpp` meets the rule, and it can join the
+list when someone writes tests for it.
+
+Each new host-tested unit adds its own entry to the filter. A unit that is not
+pure then fails to link, and it does not pull Arduino source onto the host.
 
 The two board environments set `test_ignore = *`. A bare `pio test` then
 flashes no board.
@@ -148,7 +154,7 @@ not run an authentication command here.
 | `provisioning` | [src/provisioning.cpp](src/provisioning.cpp) | USB-CDC `CTK1` frames to NVS |
 | `nvs_store` | [src/nvs_store.cpp](src/nvs_store.cpp) | Persisted config, NVS namespace `cantick` |
 | `status_led` | [src/status_led.cpp](src/status_led.cpp) | State machine. It drives the onboard LED on S3, and the matrix on C6 |
-| `matrix` | `src/matrix.cpp` | WS2812B front panel: frame buffer, 3×5 font, token scroll |
+| `matrix` | [src/matrix.cpp](src/matrix.cpp) | WS2812B front panel: frame buffer, 3×5 font, token scroll |
 
 Each `.cpp` file has a header of the same name in [include/](include/). Public
 functions live in a namespace. File-local state lives in an anonymous

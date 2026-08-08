@@ -34,6 +34,8 @@ Write `constexpr int MATRIX_PIN = D0;`.
 The 3×5 font and `xyToIndex` are the canonical rendering primitives. Do not
 write a second index function.
 
+One blank column goes between two glyphs, thus a glyph step is 4 columns.
+
 ## 2. Panel layout
 
 The panel has two layouts. Only one is on screen at a time.

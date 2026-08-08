@@ -54,6 +54,7 @@
 #define CANTICK_MATRIX_PRESET     10        // LOCKED_PRESET: flipY + column-major, no zigzag
 #define CANTICK_FONT_WIDTH        3         // 3x5 font, column-encoded
 #define CANTICK_FONT_HEIGHT       5
+#define CANTICK_GLYPH_ADVANCE     (CANTICK_FONT_WIDTH + 1)  // one blank column between glyphs
 
 // Brightness cap (DISPLAY.md §3 rule 16). It applies after the card color.
 #define CANTICK_MATRIX_BRIGHTNESS 40        // of 255
