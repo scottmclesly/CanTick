@@ -142,6 +142,14 @@ An error-passive condition does not raise a card.
 
 *[The clear condition is a recommendation, not confirmed by Scott.]*
 
+### Card pulse
+
+Two cards pulse. The bus-error card pulses at 2 Hz. The WiFi-joining card
+pulses at 1 Hz.
+
+Both cards swing between 100 % and 25 % of the card color. The strip pulse
+above 90 % load uses the same range. Thus one helper serves all three.
+
 ## 6. Card queue
 
 A card runs to the end. It is not interrupted, and it is not merged with
