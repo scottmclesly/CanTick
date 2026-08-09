@@ -8,8 +8,11 @@ constexpr uint32_t RISE_TO_MID   = CANTICK_LOAD_BAND_MID_PCT   + CANTICK_LOAD_HY
 constexpr uint32_t FALL_TO_LOW   = CANTICK_LOAD_BAND_MID_PCT   - CANTICK_LOAD_HYSTERESIS_PCT;
 constexpr uint32_t RISE_TO_HIGH  = CANTICK_LOAD_BAND_HIGH_PCT  + CANTICK_LOAD_HYSTERESIS_PCT;
 constexpr uint32_t FALL_TO_MID   = CANTICK_LOAD_BAND_HIGH_PCT  - CANTICK_LOAD_HYSTERESIS_PCT;
-constexpr uint32_t RISE_TO_PULSE = CANTICK_LOAD_BAND_PULSE_PCT + CANTICK_LOAD_HYSTERESIS_PCT;
-constexpr uint32_t FALL_TO_HIGH  = CANTICK_LOAD_BAND_PULSE_PCT - CANTICK_LOAD_HYSTERESIS_PCT;
+// DISPLAY.md §3 rule 15: the 5 % band applies to every threshold except this
+// one. A band here is wider than the gap to the 90 % threshold, which puts the
+// pulse ramp out of reach on a rising load. The 500 ms dwell alone holds this
+// edge steady.
+constexpr uint32_t PULSE_EDGE    = CANTICK_LOAD_BAND_PULSE_PCT;
 
 busload::Band g_band = busload::LOW;
 busload::Band g_pending = busload::LOW;
@@ -21,13 +24,13 @@ bool          g_hasPending = false;
 busload::Band qualify(uint32_t pct, busload::Band current) {
   busload::Band b = current;
 
-  if (b == busload::LOW   && pct >= RISE_TO_MID)   b = busload::MID;
-  if (b == busload::MID   && pct >= RISE_TO_HIGH)  b = busload::HIGH;
-  if (b == busload::HIGH  && pct >= RISE_TO_PULSE) b = busload::PULSE;
+  if (b == busload::LOW   && pct >= RISE_TO_MID)  b = busload::MID;
+  if (b == busload::MID   && pct >= RISE_TO_HIGH) b = busload::HIGH;
+  if (b == busload::HIGH  && pct >= PULSE_EDGE)   b = busload::PULSE;
 
-  if (b == busload::PULSE && pct <= FALL_TO_HIGH)  b = busload::HIGH;
-  if (b == busload::HIGH  && pct <= FALL_TO_MID)   b = busload::MID;
-  if (b == busload::MID   && pct <= FALL_TO_LOW)   b = busload::LOW;
+  if (b == busload::PULSE && pct <  PULSE_EDGE)   b = busload::HIGH;
+  if (b == busload::HIGH  && pct <= FALL_TO_MID)  b = busload::MID;
+  if (b == busload::MID   && pct <= FALL_TO_LOW)  b = busload::LOW;
 
   return b;
 }

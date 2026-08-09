@@ -78,6 +78,10 @@ scrolls. Both strips resume when the card ends.
     The dead zone is the open interval between the thresholds. Thus a rise
     needs the load at the threshold plus 5 % or more, and a fall needs the load
     at the threshold minus 5 % or less.
+    The 5 % band applies to every threshold except the HIGH to PULSE edge at
+    95 %. That edge has no band, and the 500 ms dwell alone holds it steady. A
+    band there is wider than the gap between the two thresholds, which makes
+    the 95 % to 100 % pulse ramp unreachable on a rising load.
     The load estimate has no cap at 100 %. A value above 100 % means the
     provisioned bitrate does not match the bus. That is a diagnostic finding,
     and the device does not hide it.
@@ -168,6 +172,13 @@ one exception: it goes to the head of the queue.
 
 The queue holds 4 cards. On overflow it drops the oldest. Two cards of the same
 type in the queue collapse to one.
+
+A collapse keeps the older entry's position, and it takes the newer text and
+color. Thus the panel never shows a state that the device has left.
+
+An overflow drops the oldest waiting card first, and the new card then lands
+under its own rule. Thus an overflow never drops the bus-error card that caused
+it.
 
 *[This rule is new. A build needs it. Change it if you want a different order.]*
 

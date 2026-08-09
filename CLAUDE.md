@@ -156,6 +156,7 @@ not run an authentication command here.
 | `status_led` | [src/status_led.cpp](src/status_led.cpp) | State machine. It drives the onboard LED on S3, and the matrix on C6 |
 | `matrix` | [src/matrix.cpp](src/matrix.cpp) | WS2812B front panel: frame buffer, 3×5 font, token scroll |
 | `bus_load` | [src/bus_load.cpp](src/bus_load.cpp) | Bus load estimate, hysteresis band, dwell. Pure, no clock |
+| `cards` | [src/cards.cpp](src/cards.cpp) | Card model and queue. Card order, not card pixels |
 
 Each `.cpp` file has a header of the same name in [include/](include/). Public
 functions live in a namespace. File-local state lives in an anonymous
