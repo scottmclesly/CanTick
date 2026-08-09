@@ -91,6 +91,13 @@ scrolls. Both strips resume when the card ends.
 
 An idle strip with no traffic is dark. Do not draw a placeholder arrow.
 
+One arrow is one column, and it fills the three rows of its strip. "Arrow" is
+the name of the mark, not a description of its shape, and the direction is read
+from motion.
+
+Rule 7 is the density rule. Messages queue, each step consumes one, and the
+density follows the message rate with no separate formula.
+
 The strip speed has two steps only:
 
 | Load | Step rate |
@@ -120,6 +127,9 @@ Two counters drive the missing arrow:
 The drop counter counts overflow events on a rising edge. It is a lower limit
 on lost frames, not an exact count. Thus a missing tooth means that loss
 happened. It does not mean that one frame was lost.
+
+A missing tooth stays black inside the solid pulsing line, because loss must
+stay visible in the condition that produces it.
 
 *[Recommendation, not confirmed by Scott.]*
 
