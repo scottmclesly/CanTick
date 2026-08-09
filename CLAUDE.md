@@ -155,6 +155,7 @@ not run an authentication command here.
 | `nvs_store` | [src/nvs_store.cpp](src/nvs_store.cpp) | Persisted config, NVS namespace `cantick` |
 | `status_led` | [src/status_led.cpp](src/status_led.cpp) | State machine. It drives the onboard LED on S3, and the matrix on C6 |
 | `matrix` | [src/matrix.cpp](src/matrix.cpp) | WS2812B front panel: frame buffer, 3×5 font, token scroll |
+| `bus_load` | [src/bus_load.cpp](src/bus_load.cpp) | Bus load estimate, hysteresis band, dwell. Pure, no clock |
 
 Each `.cpp` file has a header of the same name in [include/](include/). Public
 functions live in a namespace. File-local state lives in an anonymous

@@ -77,7 +77,8 @@
 #define CANTICK_LOAD_HYSTERESIS_PCT 5       // band on each side of a threshold
 #define CANTICK_LOAD_DWELL_MS     500       // a state change needs this dwell
 #define CANTICK_LOAD_BAND_MID_PCT 50        // strip is full at this load
-#define CANTICK_LOAD_BAND_HIGH_PCT 90       // darker pair and pulse start here
+#define CANTICK_LOAD_BAND_HIGH_PCT 90       // darker shade pair starts here
+#define CANTICK_LOAD_BAND_PULSE_PCT 95      // solid line and pulse start here
 
 // Strip step rate (DISPLAY.md §4). Two steps only, no ramp.
 #define CANTICK_STRIP_STEP_TICKS_SLOW 4     // below 50 % load: one pixel each 4 ticks
@@ -92,7 +93,7 @@
 // Solid-line pulse above 90 % load (DISPLAY.md §4).
 #define CANTICK_PULSE_MAX_PCT     100       // pulse swings from this ...
 #define CANTICK_PULSE_MIN_PCT     25        // ... down to this
-#define CANTICK_PULSE_MIN_HZ      1         // at 90 % load
+#define CANTICK_PULSE_MIN_HZ      1         // at 95 % load
 #define CANTICK_PULSE_MAX_HZ      4         // at 100 % load
 
 // Card queue (DISPLAY.md §6). A card runs to the end. The bus-error card goes

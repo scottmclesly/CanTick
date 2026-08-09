@@ -63,8 +63,8 @@ scrolls. Both strips resume when the card ends.
 9. At about 50 % bus load the strip is full. The arrows then alternate color on
    each odd and even step. No space is left for a new arrow.
 10. Above 50 % load the strip speed increases.
-11. At 90 % load the arrows change to a darker alternating pair.
-12. Above 90 % the strip is a solid line, and it pulses. The pulse rate
+11. At 90 % and above the arrows change to a darker alternating pair.
+12. At 95 % and above the strip is a solid line, and it pulses. The pulse rate
     increases with the load.
 13. A failed packet is a missing arrow shape, in black, in the place where the
     arrow goes on a success. It is a missing tooth in the stream.
@@ -75,6 +75,12 @@ scrolls. Both strips resume when the card ends.
     `load = frames_per_second × 111 ÷ bitrate`. The constant 111 is the bit
     count of an 8-byte frame with stuffing. A threshold has 5 % hysteresis on
     each side, and a state change needs a 500 ms dwell.
+    The dead zone is the open interval between the thresholds. Thus a rise
+    needs the load at the threshold plus 5 % or more, and a fall needs the load
+    at the threshold minus 5 % or less.
+    The load estimate has no cap at 100 %. A value above 100 % means the
+    provisioned bitrate does not match the bus. That is a diagnostic finding,
+    and the device does not hide it.
 16. The global brightness cap is 40 of 255. It is a tunable in `config.h`.
 
 ## 4. Strip behavior
@@ -95,10 +101,10 @@ The shade pairs, as a fraction of the bus-speed color:
 | Load band | Shade A | Shade B |
 |---|---|---|
 | Below 90 % | 100 % | 40 % |
-| 90 % and above | 25 % | 15 % |
-| Above 90 %, pulse | 100 % down to 25 % | — |
+| 90 % to 95 % | 25 % | 15 % |
+| 95 % and above, pulse | 100 % down to 25 % | — |
 
-The pulse rate goes from 1 Hz at 90 % load to 4 Hz at 100 % load.
+The pulse rate goes from 1 Hz at 95 % load to 4 Hz at 100 % load.
 
 ### Missing tooth
 
