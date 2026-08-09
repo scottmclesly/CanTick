@@ -17,6 +17,9 @@ the lower-case form `cantick`.
 These values come from bench calibration on the mounted enclosure. They are
 locked. Do not derive them again.
 
+The orientation is confirmed on the mounted S3. Text reads upright and left to
+right on `LOCKED_PRESET = 10`.
+
 | Item | Value |
 |---|---|
 | Part | Seeed 6×10 WS2812B RGB matrix |
@@ -44,13 +47,18 @@ the glyph. Every ported glyph stays byte-identical to the calibration sketch.
 
 The panel has two layouts. Only one is on screen at a time.
 
-**Idle layout.** Rows 0 to 2 are the inbound strip. Rows 3 to 5 are the
-outbound strip. Each strip is 3 rows high.
+**Idle layout.** Rows 0 and 1 are the inbound strip. Row 2 is the divider. Rows
+3 and 4 are the outbound strip. Row 5 stays dark. Each strip is 2 rows high.
+
+The divider is unlit. The gap alone separates the two directions. A bench check
+on the mounted S3 set this: a lit bar spends light and adds nothing that the
+gap does not already say.
 
 **Card layout.** A card takes all 6 rows. Both strips pause while a card
 scrolls. Both strips resume when the card ends.
 
-A card scrolls one column each tick.
+A card scrolls one column each 2 ticks. A bench check on the mounted S3 set
+this rate: one column each tick is too fast to read at arm's length.
 
 Card text draws at row 0. The font is 5 rows, thus row 5 stays free.
 
@@ -62,24 +70,24 @@ Card text draws at row 0. The font is 5 rows, thus row 5 stays free.
    the one exception. See §7.
 3. Each bus speed has one color. See §5.
 4. A card takes all 6 rows. Both strips pause while a card scrolls.
-5. A running arrow strip shows CAN traffic. The arrows alternate two shades of
-   the color of the configured bus speed.
+5. A running strip of marks shows CAN traffic, in the color of the configured
+   bus speed.
 6. The inbound strip is on top and it runs right to left. The outbound strip is
    on the bottom and it runs left to right.
-7. One arrow is one message.
-8. The arrow density increases as the message rate increases.
-9. At about 50 % bus load the strip is full. The arrows then alternate color on
-   each odd and even step. No space is left for a new arrow.
-10. Above 50 % load the strip speed increases.
-11. At 90 % and above the arrows change to a darker alternating pair.
-12. At 95 % and above the strip is a solid line, and it pulses. The pulse rate
-    increases with the load.
-13. A failed packet is a missing arrow shape, in black, in the place where the
-    arrow goes on a success. It is a missing tooth in the stream.
-14. The animation tick is fixed at 20 Hz. Call `show()` one time per tick. Do
+7. One mark is one message.
+8. The mark density reads the message rate at very low load only. The strip
+    steps 20 times each second, and a mark takes 4 steps, thus the strip draws
+    5 marks each second at most. Five frames each second is 555 bit/s, which is
+    about 0.1 % of a 500 kbit/s bus and about 0.2 % of a 250 kbit/s bus. Above
+    that load the strip is full, and the density carries nothing more.
+9. Load is carried by mark density and step rate only. The mark's decay is
+   identical at every load. No band changes a shade.
+10. A failed packet is a missing mark, in black, in the place where the mark
+    goes on a success. It is a missing tooth in the stream.
+11. The animation tick is fixed at 20 Hz. Call `show()` one time per tick. Do
     not call `show()` when the frame does not change. A continuous `show()`
     corrupts the signal.
-15. Bus load is an estimate:
+12. Bus load is an estimate:
     `load = frames_per_second × 111 ÷ bitrate`. The constant 111 is the bit
     count of an 8-byte frame with stuffing. A threshold has 5 % hysteresis on
     each side, and a state change needs a 500 ms dwell.
@@ -93,15 +101,41 @@ Card text draws at row 0. The font is 5 rows, thus row 5 stays free.
     The load estimate has no cap at 100 %. A value above 100 % means the
     provisioned bitrate does not match the bus. That is a diagnostic finding,
     and the device does not hide it.
-16. The global brightness cap is 40 of 255. It is a tunable in `config.h`.
+13. The global brightness cap is 32 of 255. It is a tunable in `config.h`. A
+    bench check on the mounted S3 set this value.
 
 ## 4. Strip behavior
 
 An idle strip with no traffic is dark. Do not draw a placeholder arrow.
 
-One arrow is one column, and it fills the three rows of its strip. "Arrow" is
-the name of the mark, not a description of its shape, and the direction is read
-from motion.
+One message is one mark, and one mark is a single pixel. It has no shape. It
+takes one column and one row.
+
+A mark carries a 4-column decay, as a fraction of the bus-speed color:
+
+| Column | Shade | `config.h` |
+|---|---|---|
+| Head | 100 % | `CANTICK_DECAY_HEAD_PCT` |
+| 1 behind | 50 % | `CANTICK_DECAY_1_PCT` |
+| 2 behind | 25 % | `CANTICK_DECAY_2_PCT` |
+| 3 behind | 10 % | `CANTICK_DECAY_3_PCT` |
+
+The last column needs a brightness cap of 11 or more to compute above zero. A
+cap below that turns the 4-column mark into a 3-column mark in silence.
+
+A message picks one of its strip's 2 rows at random. Its decay stays on that
+row, thus a mark never smears across both rows.
+
+Marks arrive clumped, not evenly spaced. Runs and gaps then form on their own,
+and the texture of the traffic is readable without any extra rule.
+
+Traffic draws in the bus-speed color. There is no heat ramp, and the decay
+takes no separate color of its own.
+
+The traffic color carries the bus speed. The divider is unlit, thus the color
+of the marks is the only place the speed shows on the idle layout.
+
+The direction is read from motion.
 
 Rule 7 is the density rule. Messages queue, each step consumes one, and the
 density follows the message rate with no separate formula.
@@ -115,15 +149,11 @@ The strip speed has two steps only:
 
 *[Recommendation, not confirmed by Scott. Overrule if you want a smooth ramp.]*
 
-The shade pairs, as a fraction of the bus-speed color:
-
-| Load band | Shade A | Shade B |
-|---|---|---|
-| Below 90 % | 100 % | 40 % |
-| 90 % to 95 % | 25 % | 15 % |
-| 95 % and above, pulse | 100 % down to 25 % | — |
-
-The pulse rate goes from 1 Hz at 95 % load to 4 Hz at 100 % load.
+Nothing in the renderer reads the load band for a shade. A single pixel with a
+gradient has no shade left to give: every attempt to take some either inverts
+the mark or eats its tail. The band still gates the step rate, and the step rate
+plus the density carry the load on their own. At 92 % load the strip holds 9.6
+of its 10 columns, which is saturation showing itself with nothing dimming.
 
 ### Missing tooth
 
@@ -136,10 +166,38 @@ The drop counter counts overflow events on a rising edge. It is a lower limit
 on lost frames, not an exact count. Thus a missing tooth means that loss
 happened. It does not mean that one frame was lost.
 
-A missing tooth stays black inside the solid pulsing line, because loss must
-stay visible in the condition that produces it.
+A missing tooth stays black on a full strip, because loss must stay visible in
+the condition that produces it.
 
 *[Recommendation, not confirmed by Scott.]*
+
+### Rejected on the mounted S3
+
+Each of these was built, seen on the panel and rejected. Do not reopen one
+without a new bench check.
+
+- The comet mark: a full-shade head column and one trailing column at 40 %,
+  filling the rows of its strip.
+- The heat ramp: a mark color that follows the load instead of the bus speed.
+- The inverse-lit divider: full bus color at idle, dimming as the load rises.
+- The shaped dividers: a bar eaten from the middle, and a bar retreating to a
+  centre point.
+- A fixed traffic color: one hue for every bus speed, in place of the
+  bus-speed color.
+
+Three readings of the high bands were built and measured on the mounted S3.
+All three are rejected, and the bands now change no shade at all.
+
+- R1, the band acting on the head alone: the head drops to the darker shade
+  while the decay holds, thus the first decay column outshines the head. The
+  mark inverts, and an inverted mark reads as a fault.
+- R2, the band scaling the whole mark: the 10 % tail column falls to 2 % of
+  full, which is 0 at any brightness. The 4-column mark silently becomes 3.
+- R3, the band carried by the arrival rate: the pulse period at 97 % load is
+  0.5 s and a mark crosses the strip in 0.5 s, thus the strip averages the
+  modulation away. The measured swing is 0.1 %. The mean rate also falls, so a
+  saturated bus paints 5.2 lit columns against 9.6 at 92 %, and saturation
+  reads as calm.
 
 ## 5. Card vocabulary
 
@@ -181,8 +239,8 @@ An error-passive condition does not raise a card.
 Two cards pulse. The bus-error card pulses at 2 Hz. The WiFi-joining card
 pulses at 1 Hz.
 
-Both cards swing between 100 % and 25 % of the card color. The strip pulse
-above 90 % load uses the same range. Thus one helper serves all three.
+Both cards swing between 100 % and 25 % of the card color. The strip does not
+pulse, thus the pulse belongs to the cards alone.
 
 ## 6. Card queue
 
@@ -212,9 +270,10 @@ splash card scrolls one time. Every other card scrolls two times.
 The version string comes from a build macro, not from a literal in the source.
 The splash and the build can then never disagree.
 
-The splash color is phosphor green, `0x00FF66`. It is the Scottina house color.
-The splash runs before any other card exists, thus its position makes it
-unambiguous.
+The splash color is green, `0x00FF00`. A bench check on the mounted S3 set this
+value: `0x00FF66` carries 40 % blue, which reads as teal on the panel and
+collides with the 250K teal card. The splash runs before any other card exists,
+thus its position makes it unambiguous.
 
 The splash finishes before the WiFi start on the C6. The WiFi radio conflicts
 with NeoPixel interrupt timing on that board, and the reset fault is still
@@ -243,9 +302,9 @@ variant. The status pixel reproduces the LED literally. It is one pixel, not a
 card, and it draws no word. Thus it invents no vocabulary, and the §5 rule
 holds untouched.
 
-The pixel sits at panel coordinate (9, 5). Card text holds rows 0 to 4, thus
-the pixel never collides with a scrolling card. It costs one row of the exit
-slot of the outbound strip, which is one pixel in sixty.
+The pixel sits at panel coordinate (9, 5). Card text holds rows 0 to 4, and the
+idle layout leaves row 5 dark, thus the pixel collides with nothing in either
+layout and it costs no other element a single pixel.
 
 The `status_led` state machine and its blink patterns do not move. The backend
 takes the state, the fault latch and the blink phase. It lights the pixel on

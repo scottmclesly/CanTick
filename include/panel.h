@@ -1,6 +1,6 @@
 #pragma once
 // ── Panel scheduler ──────────────────────────────────────────────────────────
-// One tick, one frame, one driver call. DISPLAY.md §3 rule 14 fixes the tick at
+// One tick, one frame, one driver call. DISPLAY.md §3 rule 11 fixes the tick at
 // 20 Hz, and it forbids a driver call when the frame does not change.
 //
 // §2: a card takes all 6 rows, and both strips pause while it scrolls. A paused
@@ -21,7 +21,7 @@ namespace panel {
 // order the LEDs sit on the data line. The host test installs a fake. The board
 // installs the NeoPixel write, and that is its single call site.
 //
-// The driver owns the global brightness cap (DISPLAY.md §3 rule 16). The frame
+// The driver owns the global brightness cap (DISPLAY.md §3 rule 10). The frame
 // buffer keeps true color, thus the cap never hides a frame change.
 using Driver = void (*)(const uint32_t *wire, int count);
 
@@ -41,8 +41,9 @@ void noteDrop(uint32_t count);
 void noteTxFail(uint32_t count);
 
 // One 20 Hz tick. It advances the animation, renders one frame, and calls the
-// driver only when the frame changed.
-void tick(busload::Band band, uint32_t loadPercent, uint32_t busColor);
+// driver only when the frame changed. The band picks the strip step rate and
+// nothing else: §3 rule 9 says no band changes a shade.
+void tick(busload::Band band, uint32_t busColor);
 
 // True while a card holds the panel.
 bool cardRunning();

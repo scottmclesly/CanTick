@@ -2,13 +2,13 @@
 
 namespace {
 
-// Threshold edges, from DISPLAY.md §3 rule 15. A threshold carries a 5 % band on
+// Threshold edges, from DISPLAY.md §3 rule 12. A threshold carries a 5 % band on
 // each side, thus the dead band around 50 % runs from 45 % to 55 %.
 constexpr uint32_t RISE_TO_MID   = CANTICK_LOAD_BAND_MID_PCT   + CANTICK_LOAD_HYSTERESIS_PCT;
 constexpr uint32_t FALL_TO_LOW   = CANTICK_LOAD_BAND_MID_PCT   - CANTICK_LOAD_HYSTERESIS_PCT;
 constexpr uint32_t RISE_TO_HIGH  = CANTICK_LOAD_BAND_HIGH_PCT  + CANTICK_LOAD_HYSTERESIS_PCT;
 constexpr uint32_t FALL_TO_MID   = CANTICK_LOAD_BAND_HIGH_PCT  - CANTICK_LOAD_HYSTERESIS_PCT;
-// DISPLAY.md §3 rule 15: the 5 % band applies to every threshold except this
+// DISPLAY.md §3 rule 12: the 5 % band applies to every threshold except this
 // one. A band here is wider than the gap to the 90 % threshold, which puts the
 // pulse ramp out of reach on a rising load. The 500 ms dwell alone holds this
 // edge steady.

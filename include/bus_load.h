@@ -1,6 +1,6 @@
 #pragma once
 // ── Bus load estimate ────────────────────────────────────────────────────────
-// DISPLAY.md §3 rule 15 is the authority:
+// DISPLAY.md §3 rule 12 is the authority:
 //
 //   load = frames_per_second x 111 / bitrate
 //
@@ -27,7 +27,7 @@ enum Band : uint8_t {
   BAND_PULSE = 3,  // 95 % and above: solid line, and it pulses
 };
 
-// The load as a whole percent, from DISPLAY.md §3 rule 15. A bitrate of 0 gives
+// The load as a whole percent, from DISPLAY.md §3 rule 12. A bitrate of 0 gives
 // 0, because an unconfigured bus has no load to report. The value is not capped
 // at 100: a number above 100 means the configured bitrate is wrong.
 uint32_t percent(uint32_t framesPerSecond, uint32_t bitrate);

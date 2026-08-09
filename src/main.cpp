@@ -30,6 +30,12 @@ void setup() {
   nvs::begin();
   CtConfig c = nvs::load();
 
+  // Plain log line; the Pi ignores every line that does not start with CTK1|.
+  // STATUS carries no bitrate, thus this is the only readback of the configured
+  // speed without WiFi. The bus-speed card color follows this number.
+  Serial.printf("[cantick] bitrate=%lu listen=%u\n",
+                (unsigned long)c.bitrate, (unsigned)c.listen);
+
   // CAN up at the stored bitrate/mode. If this fails, check wiring + that the
   // crystal really is 16 MHz (CANTICK_MCP_CLOCK).
   if (!canlink::begin(c.bitrate, c.listen)) {
@@ -51,7 +57,13 @@ void setup() {
   panelhw::raiseBusSpeedCard();
   panelhw::startTask();          // core 0, priority 4, 20 Hz
 
+#if CANTICK_PANEL_DEMO
+  // The demo is a panel bench, not a device. There is no Pi and no bus, thus a
+  // WiFi retry flood would only drown the log.
+  Serial.println("[cantick] panel demo build: WiFi is off");
+#else
   net::begin();                  // WiFi + TCP + heartbeat tasks on core 0
+#endif
   prov::begin();
 }
 

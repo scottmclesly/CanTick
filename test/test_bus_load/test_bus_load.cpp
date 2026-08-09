@@ -1,6 +1,6 @@
 // Host tests for the bus load estimate (Matrix-TODO.md Phase 3).
 //
-// ── The oracle comes from DISPLAY.md §3 rule 15 ──────────────────────────────
+// ── The oracle comes from DISPLAY.md §3 rule 12 ──────────────────────────────
 //
 //   "Bus load is an estimate: load = frames_per_second x 111 / bitrate. The
 //    constant 111 is the bit count of an 8-byte frame with stuffing. A
@@ -23,7 +23,7 @@
 // steps MID to PULSE, and HIGH appears on a falling load. Both bands paint a
 // saturated bus, thus DISPLAY.md accepts that.
 //
-// Every expected percent below is worked by hand from rule 15. A bitrate of
+// Every expected percent below is worked by hand from rule 12. A bitrate of
 // 111000 makes the arithmetic exact: load = fps / 10.
 
 #include <unity.h>

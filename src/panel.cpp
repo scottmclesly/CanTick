@@ -18,6 +18,7 @@ bool     g_haveLast = false;
 
 cards::Card g_card;
 int32_t     g_scrollX = 0;
+uint32_t    g_scrollTick = 0;
 uint8_t     g_scrollsLeft = 0;
 bool        g_cardRunning = false;
 
@@ -28,6 +29,7 @@ void clearState() {
   g_haveLast = false;
   g_cardRunning = false;
   g_scrollX = 0;
+  g_scrollTick = 0;
   g_scrollsLeft = 0;
   g_statusColor = 0;
   g_statusLit = false;
@@ -41,6 +43,7 @@ void startCardIfIdle() {
   g_card = c;
   g_scrollsLeft = c.scrolls;
   g_scrollX = CANTICK_MATRIX_COLS;      // the text waits off the right edge
+  g_scrollTick = 0;
   g_cardRunning = true;
 }
 
@@ -67,7 +70,7 @@ void push() {
     for (int i = 0; i < CANTICK_MATRIX_PIXELS; i++) {
       if (wire[i] != g_last[i]) { same = false; break; }
     }
-    if (same) return;                   // DISPLAY.md §3 rule 14
+    if (same) return;                   // DISPLAY.md §3 rule 11
   }
 
   for (int i = 0; i < CANTICK_MATRIX_PIXELS; i++) g_last[i] = wire[i];
@@ -94,7 +97,7 @@ void noteTx(uint32_t frames)    { strips::noteTx(frames); }
 void noteDrop(uint32_t count)   { strips::noteDrop(count); }
 void noteTxFail(uint32_t count) { strips::noteTxFail(count); }
 
-void tick(busload::Band band, uint32_t loadPercent, uint32_t busColor) {
+void tick(busload::Band band, uint32_t busColor) {
   if (!g_cardRunning) startCardIfIdle();
 
   matrix::clear();
@@ -103,9 +106,15 @@ void tick(busload::Band band, uint32_t loadPercent, uint32_t busColor) {
     // §2 and §3 rule 4: the card owns all 6 rows. strips::tick() is not called,
     // thus both strips hold their slots and resume where they stopped.
     matrix::drawText(g_card.text, g_scrollX, CANTICK_CARD_TEXT_ROW, g_card.color);
-    advanceCard();
+
+    // DISPLAY.md §2: one column each 2 ticks. One column each tick is too fast
+    // to read at arm's length.
+    if (++g_scrollTick >= CANTICK_CARD_SCROLL_STEP_TICKS) {
+      g_scrollTick = 0;
+      advanceCard();
+    }
   } else {
-    strips::tick(band, loadPercent);
+    strips::tick(band);
     strips::render(busColor);
   }
 
