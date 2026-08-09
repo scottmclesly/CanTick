@@ -40,4 +40,13 @@ uint32_t pixel(int x, int y);
 // pixel off the panel is dropped.
 void drawText(const char *s, int ox, int oy, uint32_t color);
 
+// The width of a string in columns. A glyph step is CANTICK_GLYPH_ADVANCE, and
+// the last glyph carries no trailing blank column. A scroll needs this number.
+int textWidth(const char *s);
+
+// Copy the frame buffer into `out` in the order the LEDs sit on the data line.
+// `out` holds CANTICK_MATRIX_PIXELS entries. This is the only reader that a
+// driver needs, and it uses xyToIndex with the locked preset.
+void toWire(uint32_t *out);
+
 }  // namespace matrix

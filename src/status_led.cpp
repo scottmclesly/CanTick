@@ -1,5 +1,6 @@
 #include "status_led.h"
 #include "config.h"
+#include <Arduino.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -14,6 +15,11 @@ namespace {
     digitalWrite(CANTICK_STATUS_LED_PIN, on ? HIGH : LOW);
 #endif
   }
+
+  // The default backend. The S3 has an onboard LED, thus it needs nothing else.
+  void onboardLed(led::State, bool, bool on) { write(on); }
+
+  led::Output g_output = onboardLed;
 
   // A blink pattern is an on/off time pair; each state gets a recognisable one.
   struct Pattern { uint16_t onMs, offMs; };
@@ -32,9 +38,9 @@ namespace {
   void ledTask(void *) {
     for (;;) {
       Pattern p = g_fault ? FAULT : patternFor(g_state);
-      write(true);
+      g_output(g_state, g_fault, true);
       vTaskDelay(pdMS_TO_TICKS(p.onMs));
-      write(false);
+      g_output(g_state, g_fault, false);
       vTaskDelay(pdMS_TO_TICKS(p.offMs));
     }
   }
@@ -50,5 +56,7 @@ void begin() {
 
 void set(State s)   { g_state = s; }
 void fault(bool on) { g_fault = on; }
+
+void setOutput(Output out) { if (out) g_output = out; }
 
 }  // namespace led

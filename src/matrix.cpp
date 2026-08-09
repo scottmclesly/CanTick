@@ -99,4 +99,21 @@ void drawText(const char *s, int ox, int oy, uint32_t color)
   }
 }
 
+int textWidth(const char *s) {
+  int n = 0;
+  while (s[n]) n++;
+  return n <= 0 ? 0 : n * CANTICK_GLYPH_ADVANCE - 1;
+}
+
+void toWire(uint32_t *out) {
+  for (int i = 0; i < CANTICK_MATRIX_PIXELS; i++) out[i] = 0;
+
+  for (int y = 0; y < MATRIX_HEIGHT; y++) {
+    for (int x = 0; x < MATRIX_WIDTH; x++) {
+      const int i = xyToIndex(x, y, CANTICK_MATRIX_PRESET);
+      if (i >= 0) out[i] = g_fb[y][x];
+    }
+  }
+}
+
 }  // namespace matrix

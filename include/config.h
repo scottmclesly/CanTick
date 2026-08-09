@@ -104,6 +104,22 @@
 #define CANTICK_CARD_SCROLL_COUNT   2
 #define CANTICK_SPLASH_SCROLL_COUNT 1
 
+// Card scroll (DISPLAY.md §2). The font is 5 rows and a card owns 6, thus row 5
+// stays free. That free row is what makes the status pixel possible.
+#define CANTICK_CARD_SCROLL_STEP_COLS 1     // one column each tick
+#define CANTICK_CARD_TEXT_ROW         0
+
+// Status pixel (DISPLAY.md §10). The C6 has no usable onboard LED, thus the
+// matrix is the status output on that variant. Card text holds rows 0 to 4, so
+// the pixel never collides with a card.
+#define CANTICK_STATUS_PIXEL_X    9
+#define CANTICK_STATUS_PIXEL_Y    5
+// Three states have no color in the §5 card table, thus they get their own.
+// The other three reuse a card color that matches in meaning.
+#define CANTICK_RGB_STATUS_BOOTING 0xFFFFFF  // white
+#define CANTICK_RGB_STATUS_NO_PI   0xFF6000  // orange
+#define CANTICK_RGB_STATUS_LISTEN  0x0040FF  // blue
+
 // Card pulse (DISPLAY.md §5). Two cards pulse. Both swing between
 // CANTICK_PULSE_MAX_PCT and CANTICK_PULSE_MIN_PCT, the range the strip pulse
 // uses, thus one helper serves all three.

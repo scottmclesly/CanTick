@@ -46,6 +46,10 @@ outbound strip. Each strip is 3 rows high.
 **Card layout.** A card takes all 6 rows. Both strips pause while a card
 scrolls. Both strips resume when the card ends.
 
+A card scrolls one column each tick.
+
+Card text draws at row 0. The font is 5 rows, thus row 5 stays free.
+
 ## 3. Rules
 
 1. The device gives user feedback through cards. A card holds scrolling text or
@@ -220,3 +224,33 @@ The C6 has no usable onboard LED. The `status_led` state machine drives the
 matrix on that variant. Keep one state machine. Add an output backend only.
 
 Write every new number in `config.h` with a `CANTICK_` prefix.
+## 10. Status pixel
+
+The C6 has no usable onboard LED, thus the matrix is the status output on that
+variant. The status pixel reproduces the LED literally. It is one pixel, not a
+card, and it draws no word. Thus it invents no vocabulary, and the §5 rule
+holds untouched.
+
+The pixel sits at panel coordinate (9, 5). Card text holds rows 0 to 4, thus
+the pixel never collides with a scrolling card. It costs one row of the exit
+slot of the outbound strip, which is one pixel in sixty.
+
+The `status_led` state machine and its blink patterns do not move. The backend
+takes the state, the fault latch and the blink phase. It lights the pixel on
+the phase, and it darkens the pixel off the phase.
+
+| State | Color | RGB |
+|---|---|---|
+| `BOOTING` | White | `0xFFFFFF` |
+| `WIFI` | The WiFi-joining yellow | `0xFFC000` |
+| `NO_PI` | Orange | `0xFF6000` |
+| `STREAMING` | The WiFi-connected green | `0x00FF00` |
+| `LISTEN` | Blue | `0x0040FF` |
+| fault latch | The bus-error red | `0xFF0000` |
+
+The fault latch wins over the state.
+
+The panel draws the status pixel last, on top of a card or a strip, thus
+nothing hides it.
+
+The S3 has an onboard LED, thus that variant draws no status pixel.

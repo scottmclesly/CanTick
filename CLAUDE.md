@@ -158,6 +158,7 @@ not run an authentication command here.
 | `bus_load` | [src/bus_load.cpp](src/bus_load.cpp) | Bus load estimate, hysteresis band, dwell. Pure, no clock |
 | `cards` | [src/cards.cpp](src/cards.cpp) | Card model and queue. Card order, not card pixels |
 | `strips` | [src/strips.cpp](src/strips.cpp) | Idle layout: two 3-row traffic strips, shade pairs, missing tooth |
+| `panel` | [src/panel.cpp](src/panel.cpp) | 20 Hz tick, card scroll, frame-change gate, the one driver seam |
 
 Each `.cpp` file has a header of the same name in [include/](include/). Public
 functions live in a namespace. File-local state lives in an anonymous
