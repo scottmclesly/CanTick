@@ -47,6 +47,10 @@ void tick(busload::Band band, uint32_t loadPercent, uint32_t busColor);
 // True while a card holds the panel.
 bool cardRunning();
 
+// True when no card runs and none waits. The boot splash ticks until this is
+// true, thus the splash finishes before the WiFi start (DISPLAY.md §7).
+bool idle();
+
 // ── Status pixel (DISPLAY.md §10) ────────────────────────────────────────────
 // The C6 has no usable onboard LED, thus the matrix is the status output there.
 // The pixel reproduces the LED literally: one pixel at (9, 5), a color for the

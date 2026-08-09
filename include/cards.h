@@ -35,6 +35,12 @@ struct Card {
 // card scrolls two times.
 uint8_t scrollsFor(Type type);
 
+// The color and the text of the configured bus speed (DISPLAY.md §5). A bitrate
+// that the table does not hold gives the default color and an empty text, thus
+// the caller raises no card for it.
+uint32_t    busSpeedColor(uint32_t bitrate);
+const char *busSpeedText(uint32_t bitrate);
+
 // Empty the queue and clear the running card.
 void reset();
 

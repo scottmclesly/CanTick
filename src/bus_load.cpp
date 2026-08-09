@@ -14,8 +14,8 @@ constexpr uint32_t FALL_TO_MID   = CANTICK_LOAD_BAND_HIGH_PCT  - CANTICK_LOAD_HY
 // edge steady.
 constexpr uint32_t PULSE_EDGE    = CANTICK_LOAD_BAND_PULSE_PCT;
 
-busload::Band g_band = busload::LOW;
-busload::Band g_pending = busload::LOW;
+busload::Band g_band = busload::BAND_LOW;
+busload::Band g_pending = busload::BAND_LOW;
 uint32_t      g_pendingSinceMs = 0;
 bool          g_hasPending = false;
 
@@ -24,13 +24,13 @@ bool          g_hasPending = false;
 busload::Band qualify(uint32_t pct, busload::Band current) {
   busload::Band b = current;
 
-  if (b == busload::LOW   && pct >= RISE_TO_MID)  b = busload::MID;
-  if (b == busload::MID   && pct >= RISE_TO_HIGH) b = busload::HIGH;
-  if (b == busload::HIGH  && pct >= PULSE_EDGE)   b = busload::PULSE;
+  if (b == busload::BAND_LOW   && pct >= RISE_TO_MID)  b = busload::BAND_MID;
+  if (b == busload::BAND_MID   && pct >= RISE_TO_HIGH) b = busload::BAND_HIGH;
+  if (b == busload::BAND_HIGH  && pct >= PULSE_EDGE)   b = busload::BAND_PULSE;
 
-  if (b == busload::PULSE && pct <  PULSE_EDGE)   b = busload::HIGH;
-  if (b == busload::HIGH  && pct <= FALL_TO_MID)  b = busload::MID;
-  if (b == busload::MID   && pct <= FALL_TO_LOW)  b = busload::LOW;
+  if (b == busload::BAND_PULSE && pct <  PULSE_EDGE)   b = busload::BAND_HIGH;
+  if (b == busload::BAND_HIGH  && pct <= FALL_TO_MID)  b = busload::BAND_MID;
+  if (b == busload::BAND_MID   && pct <= FALL_TO_LOW)  b = busload::BAND_LOW;
 
   return b;
 }
@@ -48,8 +48,8 @@ uint32_t percent(uint32_t framesPerSecond, uint32_t bitrate) {
 }
 
 void reset() {
-  g_band = LOW;
-  g_pending = LOW;
+  g_band = BAND_LOW;
+  g_pending = BAND_LOW;
   g_pendingSinceMs = 0;
   g_hasPending = false;
 }

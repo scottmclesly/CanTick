@@ -32,6 +32,30 @@ uint8_t scrollsFor(Type type) {
   return CANTICK_CARD_SCROLL_COUNT;
 }
 
+uint32_t busSpeedColor(uint32_t bitrate) {
+  switch (bitrate) {
+    case 1000000: return CANTICK_RGB_BITRATE_1M;
+    case 500000:  return CANTICK_RGB_BITRATE_500K;
+    case 250000:  return CANTICK_RGB_BITRATE_250K;
+    case 125000:  return CANTICK_RGB_BITRATE_125K;
+    case 100000:  return CANTICK_RGB_BITRATE_100K;
+    case 50000:   return CANTICK_RGB_BITRATE_50K;
+  }
+  return CANTICK_RGB_BITRATE_250K;      // the color of the default bitrate
+}
+
+const char *busSpeedText(uint32_t bitrate) {
+  switch (bitrate) {
+    case 1000000: return "1 Mbit/s";
+    case 500000:  return "500 kbit/s";
+    case 250000:  return "250 kbit/s";
+    case 125000:  return "125 kbit/s";
+    case 100000:  return "100 kbit/s";
+    case 50000:   return "50 kbit/s";
+  }
+  return "";                            // no card for a speed the table lacks
+}
+
 void reset() {
   g_count = 0;
   g_isRunning = false;

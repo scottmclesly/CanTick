@@ -198,8 +198,8 @@ it.
 
 ## 7. Boot
 
-The splash is two cards: `CANTick`, then `V1.0`. Each splash card scrolls one
-time. Every other card scrolls two times.
+The splash is two cards: `CANTick`, then `V` plus `CANTICK_FW_VERSION`. Each
+splash card scrolls one time. Every other card scrolls two times.
 
 The version string comes from a build macro, not from a literal in the source.
 The splash and the build can then never disagree.

@@ -10,7 +10,7 @@ bool         g_shadeB[2];          // the shade that the next arrow takes
 uint32_t     g_pending[2];         // messages waiting for a slot
 uint32_t     g_blank[2];           // failed messages waiting for a slot
 
-busload::Band g_band = busload::LOW;
+busload::Band g_band = busload::BAND_LOW;
 uint32_t      g_pct = 0;
 uint32_t      g_stepTick = 0;
 uint32_t      g_pulseTick = 0;
@@ -50,8 +50,8 @@ bool step(int which) {
 }
 
 // §4 shade pairs, as a percent of the bus-speed color.
-uint32_t shadeA() { return g_band == busload::HIGH ? CANTICK_SHADE_A_HIGH_PCT : CANTICK_SHADE_A_PCT; }
-uint32_t shadeB() { return g_band == busload::HIGH ? CANTICK_SHADE_B_HIGH_PCT : CANTICK_SHADE_B_PCT; }
+uint32_t shadeA() { return g_band == busload::BAND_HIGH ? CANTICK_SHADE_A_HIGH_PCT : CANTICK_SHADE_A_PCT; }
+uint32_t shadeB() { return g_band == busload::BAND_HIGH ? CANTICK_SHADE_B_HIGH_PCT : CANTICK_SHADE_B_PCT; }
 
 // §4: 1 Hz at 95 % load, rising to 4 Hz at 100 % load.
 uint32_t pulseHz() {
@@ -73,7 +73,7 @@ void reset() {
     g_pending[w] = 0;
     g_blank[w] = 0;
   }
-  g_band = busload::LOW;
+  g_band = busload::BAND_LOW;
   g_pct = 0;
   g_stepTick = 0;
   g_pulseTick = 0;
@@ -91,7 +91,7 @@ bool tick(busload::Band band, uint32_t loadPercent) {
   bool changed = false;
 
   // §4: one pixel each 4 ticks below 50 % load, one pixel each tick above it.
-  const uint32_t interval = (band == busload::LOW)
+  const uint32_t interval = (band == busload::BAND_LOW)
       ? CANTICK_STRIP_STEP_TICKS_SLOW
       : CANTICK_STRIP_STEP_TICKS_FAST;
 
@@ -102,7 +102,7 @@ bool tick(busload::Band band, uint32_t loadPercent) {
   }
 
   // The pulse repaints the strip on every tick, thus the frame changes.
-  if (band == busload::PULSE) {
+  if (band == busload::BAND_PULSE) {
     g_pulseTick++;
     changed = true;
   }
@@ -136,7 +136,7 @@ uint32_t pulseLevel() {
 void render(uint32_t busColor) {
   // §3 rule 12: above the pulse edge the strip is a solid line that pulses. A
   // failed message stays black, thus a missing tooth still reads (rule 13).
-  const bool solid = (g_band == busload::PULSE);
+  const bool solid = (g_band == busload::BAND_PULSE);
   const uint32_t solidColor = solid ? scale(busColor, pulseLevel()) : 0;
 
   for (int w = 0; w < 2; w++) {

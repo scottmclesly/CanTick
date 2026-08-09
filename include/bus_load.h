@@ -17,11 +17,14 @@ namespace busload {
 
 // The load bands that DISPLAY.md §3 and §4 act on. The strip renderer reads the
 // band. It does not read the raw percent for a threshold decision.
+// The BAND_ prefix is not decoration. Arduino defines LOW and HIGH as macros,
+// and a macro ignores a namespace, thus a bare LOW here breaks every firmware
+// file that includes Arduino.h.
 enum Band : uint8_t {
-  LOW   = 0,  // below 50 %: slow strip step
-  MID   = 1,  // 50 % and above: fast strip step, strip is full
-  HIGH  = 2,  // 90 % to 95 %: darker shade pair
-  PULSE = 3,  // 95 % and above: solid line, and it pulses
+  BAND_LOW   = 0,  // below 50 %: slow strip step
+  BAND_MID   = 1,  // 50 % and above: fast strip step, strip is full
+  BAND_HIGH  = 2,  // 90 % to 95 %: darker shade pair
+  BAND_PULSE = 3,  // 95 % and above: solid line, and it pulses
 };
 
 // The load as a whole percent, from DISPLAY.md §3 rule 15. A bitrate of 0 gives

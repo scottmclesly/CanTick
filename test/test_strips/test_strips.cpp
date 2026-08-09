@@ -33,7 +33,7 @@ constexpr uint32_t BUS = 0x804020;
 
 // Every band except LOW steps one pixel each tick.
 void tickFast(uint32_t times) {
-  for (uint32_t i = 0; i < times; i++) strips::tick(busload::MID, 60);
+  for (uint32_t i = 0; i < times; i++) strips::tick(busload::BAND_MID, 60);
 }
 
 bool stripRowsAreDark(int row0) {
@@ -63,7 +63,7 @@ void test_an_empty_strip_is_dark(void) {
 
 void test_a_quiet_strip_reports_no_change(void) {
   tickFast(4);                                  // flush any start-up motion
-  TEST_ASSERT_FALSE(strips::tick(busload::MID, 60));
+  TEST_ASSERT_FALSE(strips::tick(busload::BAND_MID, 60));
 }
 
 // ── Direction ────────────────────────────────────────────────────────────────
@@ -129,19 +129,19 @@ void test_each_strip_owns_three_rows(void) {
 // §4: below 50 % load the strip steps one pixel each 4 ticks.
 void test_the_slow_step_rate_below_50_percent(void) {
   strips::noteRx(1);
-  strips::tick(busload::LOW, 10);
-  strips::tick(busload::LOW, 10);
-  strips::tick(busload::LOW, 10);
+  strips::tick(busload::BAND_LOW, 10);
+  strips::tick(busload::BAND_LOW, 10);
+  strips::tick(busload::BAND_LOW, 10);
   TEST_ASSERT_EQUAL_INT(strips::EMPTY, strips::slot(strips::INBOUND, 9));
 
-  strips::tick(busload::LOW, 10);
+  strips::tick(busload::BAND_LOW, 10);
   TEST_ASSERT_EQUAL_INT(strips::ARROW_A, strips::slot(strips::INBOUND, 9));
 }
 
 // §4: at 50 % and above the strip steps one pixel each tick.
 void test_the_fast_step_rate_at_50_percent_and_above(void) {
   strips::noteRx(1);
-  strips::tick(busload::MID, 60);
+  strips::tick(busload::BAND_MID, 60);
   TEST_ASSERT_EQUAL_INT(strips::ARROW_A, strips::slot(strips::INBOUND, 9));
 }
 
@@ -160,7 +160,7 @@ void test_arrows_alternate_two_shades(void) {
 // §4: below 90 % load the pair is 100 % and 40 %.
 void test_the_shade_pair_below_90_percent(void) {
   strips::noteRx(10);
-  for (int i = 0; i < 10; i++) strips::tick(busload::MID, 60);
+  for (int i = 0; i < 10; i++) strips::tick(busload::BAND_MID, 60);
   strips::render(BUS);
 
   TEST_ASSERT_EQUAL_HEX32(strips::scale(BUS, 100), matrix::pixel(8, CANTICK_STRIP_IN_ROW0));
@@ -170,7 +170,7 @@ void test_the_shade_pair_below_90_percent(void) {
 // §4: from 90 % to 95 % the pair changes to 25 % and 15 %.
 void test_the_shade_pair_at_the_high_band(void) {
   strips::noteRx(10);
-  for (int i = 0; i < 10; i++) strips::tick(busload::HIGH, 92);
+  for (int i = 0; i < 10; i++) strips::tick(busload::BAND_HIGH, 92);
   strips::render(BUS);
 
   TEST_ASSERT_EQUAL_HEX32(strips::scale(BUS, 25), matrix::pixel(8, CANTICK_STRIP_IN_ROW0));
@@ -187,7 +187,7 @@ void test_the_two_shade_pairs_differ(void) {
 
 // §3 rule 12: at 95 % and above the strip is a solid line.
 void test_the_pulse_band_paints_a_solid_line(void) {
-  strips::tick(busload::PULSE, 95);             // no traffic at all
+  strips::tick(busload::BAND_PULSE, 95);             // no traffic at all
   strips::render(BUS);
 
   const uint32_t lit = strips::scale(BUS, strips::pulseLevel());
@@ -199,7 +199,7 @@ void test_the_pulse_band_paints_a_solid_line(void) {
 void test_the_pulse_swings_between_100_and_25(void) {
   uint32_t high = 0, low = 100;
   for (int i = 0; i < 40; i++) {
-    strips::tick(busload::PULSE, 95);
+    strips::tick(busload::BAND_PULSE, 95);
     const uint32_t l = strips::pulseLevel();
     if (l > high) high = l;
     if (l < low)  low = l;
@@ -209,8 +209,8 @@ void test_the_pulse_swings_between_100_and_25(void) {
 }
 
 void test_the_pulse_reports_a_change_on_every_tick(void) {
-  TEST_ASSERT_TRUE(strips::tick(busload::PULSE, 95));
-  TEST_ASSERT_TRUE(strips::tick(busload::PULSE, 95));
+  TEST_ASSERT_TRUE(strips::tick(busload::BAND_PULSE, 95));
+  TEST_ASSERT_TRUE(strips::tick(busload::BAND_PULSE, 95));
 }
 
 // ── Missing tooth ────────────────────────────────────────────────────────────
@@ -255,7 +255,7 @@ void test_a_tooth_renders_black(void) {
 void test_a_tooth_stays_black_in_the_pulse_band(void) {
   strips::noteRx(2);
   strips::noteDrop(1);
-  strips::tick(busload::PULSE, 95);
+  strips::tick(busload::BAND_PULSE, 95);
   strips::render(BUS);
 
   TEST_ASSERT_EQUAL_HEX32(0u, matrix::pixel(9, CANTICK_STRIP_IN_ROW0));

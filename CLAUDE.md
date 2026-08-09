@@ -159,6 +159,7 @@ not run an authentication command here.
 | `cards` | [src/cards.cpp](src/cards.cpp) | Card model and queue. Card order, not card pixels |
 | `strips` | [src/strips.cpp](src/strips.cpp) | Idle layout: two 3-row traffic strips, shade pairs, missing tooth |
 | `panel` | [src/panel.cpp](src/panel.cpp) | 20 Hz tick, card scroll, frame-change gate, the one driver seam |
+| `panel_hw` | [src/panel_hw.cpp](src/panel_hw.cpp) | NeoPixel driver, matrix task, counter deltas. The only file that touches the panel hardware |
 
 Each `.cpp` file has a header of the same name in [include/](include/). Public
 functions live in a namespace. File-local state lives in an anonymous
@@ -173,8 +174,12 @@ Task placement is deliberate. Keep it.
 | `can_rx` | 1 | 10 | Poll the MCP2515, fill the ring buffer |
 | `net` | 0 | 8 | TCP connect, SLCAN pump |
 | `hb` | 0 | 3 | UDP heartbeat every 2000 ms |
+| `matrix` | 0 | 4 | 20 Hz panel tick, one `show()` per changed frame |
 | `led` | 0 | 1 | Blink patterns |
 | `loop()` | 0 | — | USB-CDC provisioning only |
+
+The `matrix` row is **unconfirmed on hardware**. Confirm it on the bench, then
+remove this line.
 
 Core 1 drains the CAN controller. Core 0 runs the WiFi stack. A bounded queue
 of `CANTICK_RX_QUEUE_LEN` frames sits between them. On overflow the queue drops
@@ -184,8 +189,8 @@ The RX path is a polling loop because the board does not route the MCP2515 INT
 signal to a XIAO pad. If you find an INT pad, define `CANTICK_CAN_INT_PIN` in
 [include/config.h](include/config.h) and move to interrupt-driven RX.
 
-The matrix task is not in this table yet. See "LED matrix" for its placement
-rule.
+A WS2812B write is timing-critical, thus the matrix task runs on core 0 and
+never on core 1 against the CAN drain. Its priority sits below `net`.
 
 ### Drop accounting
 
@@ -293,10 +298,15 @@ mark. Build against them as they are. They are decisions, not open questions.
 
 ### Runtime placement
 
-DISPLAY.md sets a 20 Hz animation tick. The matrix task is not in the runtime
-table yet. Place it on core 0 at a priority below `net`. A WS2812B write is
-timing-critical, thus it must not run on core 1 against the CAN drain. Record
-the final placement in the runtime table when it is on the bench.
+DISPLAY.md sets a 20 Hz animation tick. The matrix task runs on core 0 at
+priority 4, below `net`. A WS2812B write is timing-critical, thus it must not
+run on core 1 against the CAN drain. The runtime table holds the placement, and
+it is unconfirmed on hardware.
+
+`busload::Band` uses a `BAND_` prefix on every value. Arduino defines `LOW` and
+`HIGH` as macros, and a macro ignores a namespace. A bare `LOW` in that enum
+breaks every firmware file that includes `Arduino.h`, and the host test build
+never sees the fault.
 
 ## Hardware facts
 

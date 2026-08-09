@@ -44,8 +44,8 @@ void driveTo(busload::Band want, uint32_t pct, uint32_t t0) {
 // HIGH sits between two edges that are both 95 %, thus a rising load steps over
 // it. Reach it on the way down: go to PULSE first, then fall below 95 %.
 void driveToHigh(uint32_t t0) {
-  driveTo(busload::PULSE, 95, t0);
-  driveTo(busload::HIGH, 94, t0 + 2000);
+  driveTo(busload::BAND_PULSE, 95, t0);
+  driveTo(busload::BAND_HIGH, 94, t0 + 2000);
 }
 
 }  // namespace
@@ -77,7 +77,7 @@ void test_percent_with_no_bitrate_is_zero(void) {
 // ── Hysteresis ───────────────────────────────────────────────────────────────
 
 void test_starts_in_the_low_band(void) {
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::band());
 }
 
 // 52 % is over the 50 % threshold but inside the 45 % to 55 % dead band.
@@ -85,13 +85,13 @@ void test_inside_the_dead_band_changes_nothing(void) {
   busload::update(52, 0);
   busload::update(52, 1000);
   busload::update(52, 60000);
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::band());
 }
 
 void test_one_percent_short_of_the_rise_edge_changes_nothing(void) {
   busload::update(54, 0);
   busload::update(54, 60000);
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::band());
 }
 
 // The accept criterion: a value crosses a threshold, then comes back inside the
@@ -100,14 +100,14 @@ void test_cross_then_return_inside_the_band_holds_the_state(void) {
   busload::update(55, 0);           // outside the band, the dwell starts
   busload::update(52, 200);         // back inside, thus the change dies
   busload::update(52, 1000);
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::band());
 
   // A later run of the dwell still works from a clean start.
   busload::update(55, 2000);
   busload::update(55, 2000 + CANTICK_LOAD_DWELL_MS - 1);
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::band());
   busload::update(55, 2000 + CANTICK_LOAD_DWELL_MS);
-  TEST_ASSERT_EQUAL_INT(busload::MID, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_MID, busload::band());
 }
 
 // ── Dwell ────────────────────────────────────────────────────────────────────
@@ -115,67 +115,67 @@ void test_cross_then_return_inside_the_band_holds_the_state(void) {
 // The accept criterion: a state change needs the full dwell.
 void test_a_rise_needs_the_full_dwell(void) {
   busload::update(55, 0);
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::band());
   busload::update(55, CANTICK_LOAD_DWELL_MS - 1);
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::band());
   busload::update(55, CANTICK_LOAD_DWELL_MS);
-  TEST_ASSERT_EQUAL_INT(busload::MID, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_MID, busload::band());
 }
 
 void test_a_fall_needs_the_full_dwell(void) {
-  driveTo(busload::MID, 60, 0);
+  driveTo(busload::BAND_MID, 60, 0);
 
   busload::update(45, 2000);
-  TEST_ASSERT_EQUAL_INT(busload::MID, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_MID, busload::band());
   busload::update(45, 2000 + CANTICK_LOAD_DWELL_MS - 1);
-  TEST_ASSERT_EQUAL_INT(busload::MID, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_MID, busload::band());
   busload::update(45, 2000 + CANTICK_LOAD_DWELL_MS);
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::band());
 }
 
 void test_a_falling_value_inside_the_band_holds_the_state(void) {
-  driveTo(busload::MID, 60, 0);
+  driveTo(busload::BAND_MID, 60, 0);
 
   busload::update(48, 2000);        // inside 45 % to 55 %
   busload::update(48, 60000);
-  TEST_ASSERT_EQUAL_INT(busload::MID, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_MID, busload::band());
 }
 
 // ── The 90 % threshold ───────────────────────────────────────────────────────
 
 // The pulse edge is 95 % with no band, thus 95 % goes straight to PULSE.
 void test_a_load_at_95_reaches_the_pulse_band(void) {
-  driveTo(busload::PULSE, 95, 0);
+  driveTo(busload::BAND_PULSE, 95, 0);
 }
 
 // ── The 95 % edge, which carries no hysteresis band ──────────────────────────
 
 void test_a_full_bus_reaches_the_pulse_band(void) {
-  driveTo(busload::PULSE, 100, 0);
+  driveTo(busload::BAND_PULSE, 100, 0);
 }
 
 // The 95 % edge has no band, thus 99 % reaches PULSE from HIGH.
 void test_99_percent_reaches_the_pulse_band(void) {
   driveToHigh(0);
 
-  driveTo(busload::PULSE, 99, 5000);
+  driveTo(busload::BAND_PULSE, 99, 5000);
 }
 
 void test_96_percent_holds_the_pulse_band(void) {
-  driveTo(busload::PULSE, 100, 0);
+  driveTo(busload::BAND_PULSE, 100, 0);
 
   busload::update(96, 2000);        // still at or above the 95 % edge
   busload::update(96, 60000);
-  TEST_ASSERT_EQUAL_INT(busload::PULSE, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_PULSE, busload::band());
 }
 
 void test_pulse_falls_to_high_below_95(void) {
-  driveTo(busload::PULSE, 100, 0);
+  driveTo(busload::BAND_PULSE, 100, 0);
 
   busload::update(94, 2000);
-  TEST_ASSERT_EQUAL_INT(busload::PULSE, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_PULSE, busload::band());
   busload::update(94, 2000 + CANTICK_LOAD_DWELL_MS);
-  TEST_ASSERT_EQUAL_INT(busload::HIGH, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_HIGH, busload::band());
 }
 
 // No band on this edge does not mean no dwell. A load that moves across 95 %
@@ -184,26 +184,26 @@ void test_the_95_edge_still_needs_the_full_dwell(void) {
   driveToHigh(0);
 
   busload::update(96, 5000);
-  TEST_ASSERT_EQUAL_INT(busload::HIGH, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_HIGH, busload::band());
   busload::update(96, 5000 + CANTICK_LOAD_DWELL_MS - 1);
-  TEST_ASSERT_EQUAL_INT(busload::HIGH, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_HIGH, busload::band());
   busload::update(96, 5000 + CANTICK_LOAD_DWELL_MS);
-  TEST_ASSERT_EQUAL_INT(busload::PULSE, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_PULSE, busload::band());
 
   busload::update(94, 20000);
-  TEST_ASSERT_EQUAL_INT(busload::PULSE, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_PULSE, busload::band());
   busload::update(94, 20000 + CANTICK_LOAD_DWELL_MS - 1);
-  TEST_ASSERT_EQUAL_INT(busload::PULSE, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_PULSE, busload::band());
   busload::update(94, 20000 + CANTICK_LOAD_DWELL_MS);
-  TEST_ASSERT_EQUAL_INT(busload::HIGH, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_HIGH, busload::band());
 }
 
 void test_a_full_bus_falls_two_bands_at_85(void) {
-  driveTo(busload::PULSE, 100, 0);
+  driveTo(busload::BAND_PULSE, 100, 0);
 
   busload::update(85, 2000);
   busload::update(85, 2000 + CANTICK_LOAD_DWELL_MS);
-  TEST_ASSERT_EQUAL_INT(busload::MID, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_MID, busload::band());
 }
 
 void test_87_percent_holds_the_high_band(void) {
@@ -211,7 +211,7 @@ void test_87_percent_holds_the_high_band(void) {
 
   busload::update(87, 5000);        // inside 85 % to 95 %
   busload::update(87, 60000);
-  TEST_ASSERT_EQUAL_INT(busload::HIGH, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_HIGH, busload::band());
 }
 
 void test_high_falls_to_mid_at_the_lower_edge(void) {
@@ -219,7 +219,7 @@ void test_high_falls_to_mid_at_the_lower_edge(void) {
 
   busload::update(85, 5000);
   busload::update(85, 5000 + CANTICK_LOAD_DWELL_MS);
-  TEST_ASSERT_EQUAL_INT(busload::MID, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_MID, busload::band());
 }
 
 // ── Pending change ───────────────────────────────────────────────────────────
@@ -229,20 +229,20 @@ void test_a_new_target_starts_the_dwell_again(void) {
   busload::update(55, 0);           // pending MID, from 0 ms
   busload::update(95, 200);         // pending HIGH, from 200 ms
   busload::update(95, 600);         // 400 ms of dwell only
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::band());
   busload::update(95, 700);         // 500 ms of dwell
-  TEST_ASSERT_EQUAL_INT(busload::PULSE, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_PULSE, busload::band());
 }
 
 void test_reset_returns_to_the_low_band(void) {
-  driveTo(busload::PULSE, 95, 0);
+  driveTo(busload::BAND_PULSE, 95, 0);
   busload::reset();
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::band());
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::band());
 }
 
 void test_update_gives_the_band_in_force(void) {
-  TEST_ASSERT_EQUAL_INT(busload::LOW, busload::update(55, 0));
-  TEST_ASSERT_EQUAL_INT(busload::MID, busload::update(55, CANTICK_LOAD_DWELL_MS));
+  TEST_ASSERT_EQUAL_INT(busload::BAND_LOW, busload::update(55, 0));
+  TEST_ASSERT_EQUAL_INT(busload::BAND_MID, busload::update(55, CANTICK_LOAD_DWELL_MS));
 }
 
 int main(int, char **) {

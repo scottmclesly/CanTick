@@ -121,6 +121,8 @@ void tick(busload::Band band, uint32_t loadPercent, uint32_t busColor) {
 
 bool cardRunning() { return g_cardRunning; }
 
+bool idle() { return !g_cardRunning && cards::depth() == 0; }
+
 uint32_t statusColor(led::State s, bool fault) {
   if (fault) return CANTICK_RGB_BUS_ERROR;      // the latch wins over the state
 

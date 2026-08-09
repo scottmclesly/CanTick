@@ -36,7 +36,7 @@ constexpr uint32_t BUS = 0x804020;
 
 // Every band except LOW steps the strips one pixel each tick.
 void tickFast(int times) {
-  for (int i = 0; i < times; i++) panel::tick(busload::MID, 60, BUS);
+  for (int i = 0; i < times; i++) panel::tick(busload::BAND_MID, 60, BUS);
 }
 
 cards::Card card(cards::Type t, const char *text, uint32_t color) {
@@ -69,29 +69,29 @@ void tearDown(void) {}
 // ── The driver call gate ─────────────────────────────────────────────────────
 
 void test_the_first_frame_reaches_the_driver(void) {
-  panel::tick(busload::MID, 60, BUS);
+  panel::tick(busload::BAND_MID, 60, BUS);
   TEST_ASSERT_EQUAL_INT(1, g_calls);
   TEST_ASSERT_EQUAL_INT(CANTICK_MATRIX_PIXELS, g_count);
 }
 
 // §3 rule 14: an unchanged frame raises no driver call.
 void test_an_unchanged_frame_raises_no_driver_call(void) {
-  panel::tick(busload::MID, 60, BUS);      // the first frame always goes
+  panel::tick(busload::BAND_MID, 60, BUS);      // the first frame always goes
   const int after = g_calls;
 
-  panel::tick(busload::MID, 60, BUS);
-  panel::tick(busload::MID, 60, BUS);
-  panel::tick(busload::MID, 60, BUS);
+  panel::tick(busload::BAND_MID, 60, BUS);
+  panel::tick(busload::BAND_MID, 60, BUS);
+  panel::tick(busload::BAND_MID, 60, BUS);
 
   TEST_ASSERT_EQUAL_INT(after, g_calls);   // a dark panel does not change
 }
 
 void test_a_changed_frame_raises_one_driver_call(void) {
-  panel::tick(busload::MID, 60, BUS);
+  panel::tick(busload::BAND_MID, 60, BUS);
   const int after = g_calls;
 
   panel::noteRx(1);
-  panel::tick(busload::MID, 60, BUS);      // an arrow enters, thus the frame moves
+  panel::tick(busload::BAND_MID, 60, BUS);      // an arrow enters, thus the frame moves
 
   TEST_ASSERT_EQUAL_INT(after + 1, g_calls);
 }
@@ -99,14 +99,14 @@ void test_a_changed_frame_raises_one_driver_call(void) {
 void test_a_missing_driver_does_not_fault(void) {
   panel::begin(nullptr);
   panel::noteRx(1);
-  panel::tick(busload::MID, 60, BUS);      // it must not dereference a null
+  panel::tick(busload::BAND_MID, 60, BUS);      // it must not dereference a null
 }
 
 // The driver takes the frame in wire order. Column 9 row 0 sits at index
 // 9 * 6 + (5 - 0) = 59, from the DISPLAY.md §1 preset.
 void test_the_driver_gets_the_frame_in_wire_order(void) {
   panel::noteRx(1);
-  panel::tick(busload::MID, 60, BUS);      // the arrow enters at column 9
+  panel::tick(busload::BAND_MID, 60, BUS);      // the arrow enters at column 9
 
   TEST_ASSERT_EQUAL_HEX32(matrix::pixel(9, 0), g_frame[59]);
   TEST_ASSERT_NOT_EQUAL(0u, g_frame[59]);
@@ -116,7 +116,7 @@ void test_the_driver_gets_the_frame_in_wire_order(void) {
 
 void test_a_card_holds_the_panel(void) {
   panel::raise(card(cards::BUS_SPEED, "H", CANTICK_RGB_BITRATE_250K));
-  panel::tick(busload::MID, 60, BUS);
+  panel::tick(busload::BAND_MID, 60, BUS);
 
   TEST_ASSERT_TRUE(panel::cardRunning());
 }
@@ -220,10 +220,10 @@ void test_the_next_card_runs_after_the_first(void) {
 // A scrolling card moves, thus every tick reaches the driver.
 void test_a_scrolling_card_changes_the_frame(void) {
   panel::raise(card(cards::BUS_SPEED, "H", CANTICK_RGB_BITRATE_250K));
-  panel::tick(busload::MID, 60, BUS);
+  panel::tick(busload::BAND_MID, 60, BUS);
   const int after = g_calls;
 
-  panel::tick(busload::MID, 60, BUS);
+  panel::tick(busload::BAND_MID, 60, BUS);
   TEST_ASSERT_EQUAL_INT(after + 1, g_calls);
 }
 
@@ -297,7 +297,7 @@ void test_the_status_pixel_survives_a_full_card(void) {
 
   const int total = c.scrolls * ticksPerScroll("HIH");
   for (int i = 0; i < total; i++) {
-    panel::tick(busload::MID, 60, BUS);
+    panel::tick(busload::BAND_MID, 60, BUS);
     TEST_ASSERT_EQUAL_HEX32(CANTICK_RGB_STATUS_NO_PI,
                             matrix::pixel(CANTICK_STATUS_PIXEL_X,
                                           CANTICK_STATUS_PIXEL_Y));
@@ -310,7 +310,7 @@ void test_card_text_never_reaches_row_5(void) {
   panel::raise(card(cards::BUS_SPEED, "HIH", CANTICK_RGB_BITRATE_250K));
 
   for (int i = 0; i < 2 * ticksPerScroll("HIH"); i++) {
-    panel::tick(busload::MID, 60, BUS);
+    panel::tick(busload::BAND_MID, 60, BUS);
     for (int x = 0; x < matrix::WIDTH; x++)
       TEST_ASSERT_EQUAL_HEX32(0u, matrix::pixel(x, CANTICK_STATUS_PIXEL_Y));
   }

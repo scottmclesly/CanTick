@@ -71,6 +71,37 @@ void test_a_card_carries_its_text_and_color(void) {
   TEST_ASSERT_EQUAL_UINT8(2, c.scrolls);
 }
 
+// ── Bus speed, DISPLAY.md §5 ─────────────────────────────────────────────────
+
+void test_each_bus_speed_has_its_color(void) {
+  TEST_ASSERT_EQUAL_HEX32(CANTICK_RGB_BITRATE_1M,   cards::busSpeedColor(1000000));
+  TEST_ASSERT_EQUAL_HEX32(CANTICK_RGB_BITRATE_500K, cards::busSpeedColor(500000));
+  TEST_ASSERT_EQUAL_HEX32(CANTICK_RGB_BITRATE_250K, cards::busSpeedColor(250000));
+  TEST_ASSERT_EQUAL_HEX32(CANTICK_RGB_BITRATE_125K, cards::busSpeedColor(125000));
+  TEST_ASSERT_EQUAL_HEX32(CANTICK_RGB_BITRATE_100K, cards::busSpeedColor(100000));
+  TEST_ASSERT_EQUAL_HEX32(CANTICK_RGB_BITRATE_50K,  cards::busSpeedColor(50000));
+}
+
+void test_each_bus_speed_has_its_text(void) {
+  TEST_ASSERT_EQUAL_STRING("1 Mbit/s",   cards::busSpeedText(1000000));
+  TEST_ASSERT_EQUAL_STRING("500 kbit/s", cards::busSpeedText(500000));
+  TEST_ASSERT_EQUAL_STRING("250 kbit/s", cards::busSpeedText(250000));
+  TEST_ASSERT_EQUAL_STRING("125 kbit/s", cards::busSpeedText(125000));
+  TEST_ASSERT_EQUAL_STRING("100 kbit/s", cards::busSpeedText(100000));
+  TEST_ASSERT_EQUAL_STRING("50 kbit/s",  cards::busSpeedText(50000));
+}
+
+// The default bitrate must be one the §5 table holds, or the boot card is empty.
+void test_the_default_bitrate_has_a_card(void) {
+  TEST_ASSERT_NOT_EQUAL(0, cards::busSpeedText(CANTICK_DEFAULT_BITRATE)[0]);
+}
+
+// A speed the table does not hold gives an empty text, thus no card is raised.
+void test_an_unknown_bus_speed_raises_no_card(void) {
+  TEST_ASSERT_EQUAL_STRING("", cards::busSpeedText(83333));
+  TEST_ASSERT_EQUAL_HEX32(CANTICK_RGB_BITRATE_250K, cards::busSpeedColor(83333));
+}
+
 // ── Order of arrival ─────────────────────────────────────────────────────────
 
 void test_the_queue_holds_the_order_of_arrival(void) {
@@ -241,6 +272,10 @@ int main(int, char **) {
   RUN_TEST(test_a_splash_card_scrolls_one_time);
   RUN_TEST(test_every_other_card_scrolls_two_times);
   RUN_TEST(test_a_card_carries_its_text_and_color);
+  RUN_TEST(test_each_bus_speed_has_its_color);
+  RUN_TEST(test_each_bus_speed_has_its_text);
+  RUN_TEST(test_the_default_bitrate_has_a_card);
+  RUN_TEST(test_an_unknown_bus_speed_raises_no_card);
   RUN_TEST(test_the_queue_holds_the_order_of_arrival);
   RUN_TEST(test_overflow_drops_the_oldest);
   RUN_TEST(test_two_cards_of_one_type_collapse);

@@ -15,6 +15,8 @@
 #include "net_transport.h"
 #include "provisioning.h"
 #include "status_led.h"
+#include "panel.h"
+#include "panel_hw.h"
 
 // RX sink: bus frame -> TCP send queue. Runs in the CAN core-1 task context.
 static void onBusFrame(const CanFrame &f) { net::enqueueRx(f); }
@@ -36,6 +38,18 @@ void setup() {
   }
   canlink::onFrame(onBusFrame);
   canlink::startRxTask();        // pinned to core 1
+
+  panelhw::begin(c.bitrate);     // NeoPixel up, driver installed behind panel
+
+#if CANTICK_STATUS_ON_MATRIX
+  // The C6 has no usable onboard LED, thus the matrix carries the status pixel
+  // (DISPLAY.md §10). The state machine stays in status_led.
+  led::setOutput(panel::statusPixelBackend);
+#endif
+
+  panelhw::runSplash();          // DISPLAY.md §7: it finishes before WiFi starts
+  panelhw::raiseBusSpeedCard();
+  panelhw::startTask();          // core 0, priority 4, 20 Hz
 
   net::begin();                  // WiFi + TCP + heartbeat tasks on core 0
   prov::begin();
