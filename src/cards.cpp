@@ -46,12 +46,12 @@ uint32_t busSpeedColor(uint32_t bitrate) {
 
 const char *busSpeedText(uint32_t bitrate) {
   switch (bitrate) {
-    case 1000000: return "1 Mbit/s";
-    case 500000:  return "500 kbit/s";
-    case 250000:  return "250 kbit/s";
-    case 125000:  return "125 kbit/s";
-    case 100000:  return "100 kbit/s";
-    case 50000:   return "50 kbit/s";
+    case 1000000: return "1M";
+    case 500000:  return "500K";
+    case 250000:  return "250K";
+    case 125000:  return "125K";
+    case 100000:  return "100K";
+    case 50000:   return "50K";
   }
   return "";                            // no card for a speed the table lacks
 }

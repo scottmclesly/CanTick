@@ -120,6 +120,16 @@ list when someone writes tests for it.
 Each new host-tested unit adds its own entry to the filter. A unit that is not
 pure then fails to link, and it does not pull Arduino source onto the host.
 
+**Host-green is never sufficient.** The host build has no `Arduino.h`, thus it
+cannot see a name that collides with an Arduino macro, a board-specific pin
+name or a framework type. A pure unit can pass every host test and still fail
+to compile on target. `busload::Band` is the example: `LOW` and `HIGH` are
+Arduino macros, and a macro ignores a namespace.
+
+`pio run` on both boards is the guard for that class of fault. Every phase
+carries it in the accept criteria for that reason. Run it before you report a
+phase complete, even when the change looks pure.
+
 The two board environments set `test_ignore = *`. A bare `pio test` then
 flashes no board.
 

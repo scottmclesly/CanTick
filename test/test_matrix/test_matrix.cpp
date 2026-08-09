@@ -128,6 +128,28 @@ void test_second_glyph_advances_four_columns(void) {
     TEST_ASSERT_EQUAL_HEX32(0u, matrix::pixel(3, y));
 }
 
+// The period is the one glyph added to the ported set. DISPLAY.md §1 and §7:
+// the splash draws CANTICK_FW_VERSION, and that macro holds two periods.
+void test_the_period_is_one_dot_on_the_bottom_row(void) {
+  matrix::drawText(".", 0, 0, INK);
+
+  for (int y = 0; y < matrix::HEIGHT; y++) {
+    for (int x = 0; x < matrix::WIDTH; x++) {
+      const bool lit = (x == 1 && y == CANTICK_FONT_HEIGHT - 1);
+      TEST_ASSERT_EQUAL_HEX32(lit ? INK : 0u, matrix::pixel(x, y));
+    }
+  }
+}
+
+// The version splash must be drawable end to end, or it shows a hole.
+void test_the_version_splash_is_drawable(void) {
+  for (const char *p = "V" CANTICK_FW_VERSION; *p; p++) {
+    uint8_t g[3];
+    matrix::glyph(*p, g);
+    TEST_ASSERT_TRUE_MESSAGE(g[0] || g[1] || g[2], "a splash character has no glyph");
+  }
+}
+
 void test_unknown_character_draws_nothing(void) {
   matrix::drawText("?", 0, 0, INK);
   for (int y = 0; y < matrix::HEIGHT; y++)
@@ -177,6 +199,8 @@ int main(int, char **) {
   RUN_TEST(test_map_covers_every_led_once);
   RUN_TEST(test_glyph_H_lands_on_expected_pixels);
   RUN_TEST(test_second_glyph_advances_four_columns);
+  RUN_TEST(test_the_period_is_one_dot_on_the_bottom_row);
+  RUN_TEST(test_the_version_splash_is_drawable);
   RUN_TEST(test_unknown_character_draws_nothing);
   RUN_TEST(test_lower_case_draws_the_same_glyph);
   RUN_TEST(test_draw_off_the_panel_is_dropped);

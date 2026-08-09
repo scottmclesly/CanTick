@@ -30,7 +30,7 @@ uint32_t g_busColor = CANTICK_RGB_BITRATE_250K;
 
 // Counter marks. The strips take deltas, thus the hot RX path on core 1 gains
 // no work at all.
-uint32_t g_lastRx = 0, g_lastTx = 0, g_lastDrop = 0;
+uint32_t g_lastRx = 0, g_lastTx = 0, g_lastDrop = 0, g_lastTxFail = 0;
 
 // One second of ticks gives the frame rate that the load estimate needs.
 uint32_t g_windowFrames = 0;
@@ -64,18 +64,22 @@ void feed() {
   const uint32_t rx = canlink::rxCount();
   const uint32_t tx = canlink::txCount();
   const uint32_t dr = dropTotal();
+  const uint32_t tf = canlink::txFailCount();
 
-  const uint32_t dRx   = rx - g_lastRx;      // unsigned, thus a wrap is safe
-  const uint32_t dTx   = tx - g_lastTx;
-  const uint32_t dDrop = dr - g_lastDrop;
+  const uint32_t dRx     = rx - g_lastRx;    // unsigned, thus a wrap is safe
+  const uint32_t dTx     = tx - g_lastTx;
+  const uint32_t dDrop   = dr - g_lastDrop;
+  const uint32_t dTxFail = tf - g_lastTxFail;
 
   g_lastRx = rx;
   g_lastTx = tx;
   g_lastDrop = dr;
+  g_lastTxFail = tf;
 
-  if (dRx)   panel::noteRx(dRx);
-  if (dTx)   panel::noteTx(dTx);
-  if (dDrop) panel::noteDrop(dDrop);
+  if (dRx)     panel::noteRx(dRx);
+  if (dTx)     panel::noteTx(dTx);
+  if (dDrop)   panel::noteDrop(dDrop);
+  if (dTxFail) panel::noteTxFail(dTxFail);
 
   g_windowFrames += dRx + dTx;
   if (++g_windowTicks >= CANTICK_MATRIX_TICK_HZ) {
@@ -114,6 +118,7 @@ void begin(uint32_t bitrate) {
   g_lastRx = canlink::rxCount();
   g_lastTx = canlink::txCount();
   g_lastDrop = dropTotal();
+  g_lastTxFail = canlink::txFailCount();
 }
 
 void runSplash() {

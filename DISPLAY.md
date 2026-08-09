@@ -36,6 +36,10 @@ write a second index function.
 
 One blank column goes between two glyphs, thus a glyph step is 4 columns.
 
+The font is the ported set plus a period. The splash draws the version from
+`CANTICK_FW_VERSION`, and that macro holds two periods, thus the panel needs
+the glyph. Every ported glyph stays byte-identical to the calibration sketch.
+
 ## 2. Panel layout
 
 The panel has two layouts. Only one is on screen at a time.
@@ -144,16 +148,20 @@ NVS. The device does not measure it. There is no autobaud in this effort.
 
 | Card | Meaning | Color | RGB |
 |---|---|---|---|
-| `1 Mbit/s` | Configured bus speed | Orange | `0xFF6000` |
-| `500 kbit/s` | Configured bus speed | Red | `0xFF0000` |
-| `250 kbit/s` | Configured bus speed | Blue | `0x0040FF` |
-| `125 kbit/s` | Configured bus speed | Teal | `0x00C0A0` |
-| `100 kbit/s` | Configured bus speed | Green | `0x00FF00` |
-| `50 kbit/s` | Configured bus speed | Purple | `0xA000FF` |
+| `1M` | Configured bus speed | Orange | `0xFF6000` |
+| `500K` | Configured bus speed | Red | `0xFF0000` |
+| `250K` | Configured bus speed | Blue | `0x0040FF` |
+| `125K` | Configured bus speed | Teal | `0x00C0A0` |
+| `100K` | Configured bus speed | Green | `0x00FF00` |
+| `50K` | Configured bus speed | Purple | `0xA000FF` |
 | `X X X` | Bus error | Red, pulsing | `0xFF0000` |
 | `Wi-Fi` | WiFi connected | Green | `0x00FF00` |
 | `Wi-Fi` | WiFi connects now | Yellow, pulsing | `0xFFC000` |
 | `Wi-Fi` | WiFi disconnected | Red | `0xFF0000` |
+
+The bus-speed card text is short because the font cannot draw `/`, and at ten
+columns the full string is a long scroll for a value the card color already
+carries.
 
 The RGB values are defaults. Put each one in `config.h` as a tunable. The
 global brightness cap applies after the color.
@@ -203,6 +211,10 @@ splash card scrolls one time. Every other card scrolls two times.
 
 The version string comes from a build macro, not from a literal in the source.
 The splash and the build can then never disagree.
+
+The splash color is phosphor green, `0x00FF66`. It is the Scottina house color.
+The splash runs before any other card exists, thus its position makes it
+unambiguous.
 
 The splash finishes before the WiFi start on the C6. The WiFi radio conflicts
 with NeoPixel interrupt timing on that board, and the reset fault is still

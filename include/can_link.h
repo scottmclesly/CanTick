@@ -36,4 +36,10 @@ namespace canlink {
   uint32_t dropCount();   // MCP2515 RX FIFO overflow events (edge-counted).
                           // The outbound-queue-full count lives in net_transport;
                           // the heartbeat reports the sum as the contract `drop`.
+
+  // Bus transmit errors. A failed bus transmission is NOT a drop, thus this
+  // count never enters the heartbeat `drop` field. It serves the front panel
+  // alone (DISPLAY.md §4). A listen-only rejection is not counted here: that
+  // path refuses a transmission, it does not fail one.
+  uint32_t txFailCount();
 }

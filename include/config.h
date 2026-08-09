@@ -120,9 +120,8 @@
 #define CANTICK_RGB_STATUS_NO_PI   0xFF6000  // orange
 #define CANTICK_RGB_STATUS_LISTEN  0x0040FF  // blue
 
-// Splash color (DISPLAY.md §7). §5 gives no color for a splash card, thus this
-// number is not from DISPLAY.md yet.
-#define CANTICK_RGB_SPLASH        0xFFFFFF  // white
+// Splash color (DISPLAY.md §7). Phosphor green, the Scottina house color.
+#define CANTICK_RGB_SPLASH        0x00FF66
 
 // Card pulse (DISPLAY.md §5). Two cards pulse. Both swing between
 // CANTICK_PULSE_MAX_PCT and CANTICK_PULSE_MIN_PCT, the range the strip pulse

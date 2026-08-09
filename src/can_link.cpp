@@ -11,7 +11,7 @@ namespace {
   volatile bool g_listen    = false;
   volatile bool g_open      = false;
   portMUX_TYPE g_mux        = portMUX_INITIALIZER_UNLOCKED;
-  uint32_t    g_rx = 0, g_tx = 0, g_overflow = 0;
+  uint32_t    g_rx = 0, g_tx = 0, g_overflow = 0, g_txFail = 0;
   bool        g_prevOvr     = false;   // edge state for MCP RX-overflow detection
 
   // coryjfowler speed code from a numeric bitrate. Extend as needed.
@@ -102,11 +102,18 @@ bool send(const CanFrame &f) {
   // A failed bus TX is not a "dropped RX frame": the contract's `drop` field
   // counts frames lost on the way to the Pi (overflow / outbound queue full),
   // so a TX error is reported only via the send() return, not folded into drop.
+  //
+  // The counter below serves the front panel alone (DISPLAY.md §4: a failed
+  // canlink::send() blanks one slot on the outbound strip). It never reaches the
+  // heartbeat. The listen-only rejection above does not reach it either: that
+  // path refuses a transmission, it does not fail one.
+  taskENTER_CRITICAL(&g_mux); g_txFail++; taskEXIT_CRITICAL(&g_mux);
   return false;
 }
 
-uint32_t rxCount()   { return g_rx; }
-uint32_t txCount()   { return g_tx; }
-uint32_t dropCount() { return g_overflow; }   // MCP2515 RX FIFO overflow events
+uint32_t rxCount()     { return g_rx; }
+uint32_t txCount()     { return g_tx; }
+uint32_t dropCount()   { return g_overflow; }   // MCP2515 RX FIFO overflow events
+uint32_t txFailCount() { return g_txFail; }     // bus TX errors; never a `drop`
 
 }  // namespace canlink

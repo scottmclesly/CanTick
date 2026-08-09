@@ -24,6 +24,7 @@
 
 #include <unity.h>
 #include "cards.h"
+#include "matrix.h"
 
 namespace {
 
@@ -83,12 +84,25 @@ void test_each_bus_speed_has_its_color(void) {
 }
 
 void test_each_bus_speed_has_its_text(void) {
-  TEST_ASSERT_EQUAL_STRING("1 Mbit/s",   cards::busSpeedText(1000000));
-  TEST_ASSERT_EQUAL_STRING("500 kbit/s", cards::busSpeedText(500000));
-  TEST_ASSERT_EQUAL_STRING("250 kbit/s", cards::busSpeedText(250000));
-  TEST_ASSERT_EQUAL_STRING("125 kbit/s", cards::busSpeedText(125000));
-  TEST_ASSERT_EQUAL_STRING("100 kbit/s", cards::busSpeedText(100000));
-  TEST_ASSERT_EQUAL_STRING("50 kbit/s",  cards::busSpeedText(50000));
+  TEST_ASSERT_EQUAL_STRING("1M",   cards::busSpeedText(1000000));
+  TEST_ASSERT_EQUAL_STRING("500K", cards::busSpeedText(500000));
+  TEST_ASSERT_EQUAL_STRING("250K", cards::busSpeedText(250000));
+  TEST_ASSERT_EQUAL_STRING("125K", cards::busSpeedText(125000));
+  TEST_ASSERT_EQUAL_STRING("100K", cards::busSpeedText(100000));
+  TEST_ASSERT_EQUAL_STRING("50K",  cards::busSpeedText(50000));
+}
+
+// Every character of every card text must have a glyph, or the card shows a
+// hole. The font holds 0-9, A-Z and a period.
+void test_every_bus_speed_text_is_drawable(void) {
+  const uint32_t rates[] = {1000000, 500000, 250000, 125000, 100000, 50000};
+  for (uint32_t r : rates) {
+    for (const char *p = cards::busSpeedText(r); *p; p++) {
+      uint8_t g[3];
+      matrix::glyph(*p, g);
+      TEST_ASSERT_TRUE_MESSAGE(g[0] || g[1] || g[2], "a card character has no glyph");
+    }
+  }
 }
 
 // The default bitrate must be one the §5 table holds, or the boot card is empty.
@@ -274,6 +288,7 @@ int main(int, char **) {
   RUN_TEST(test_a_card_carries_its_text_and_color);
   RUN_TEST(test_each_bus_speed_has_its_color);
   RUN_TEST(test_each_bus_speed_has_its_text);
+  RUN_TEST(test_every_bus_speed_text_is_drawable);
   RUN_TEST(test_the_default_bitrate_has_a_card);
   RUN_TEST(test_an_unknown_bus_speed_raises_no_card);
   RUN_TEST(test_the_queue_holds_the_order_of_arrival);

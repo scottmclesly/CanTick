@@ -26,6 +26,12 @@ const uint8_t FONT_ALPHA[26][3] = {
   {3,28,3},{25,21,19}
 };
 
+// ── Added to the ported set ──────────────────────────────────────────────────
+// The sketch had no period. DISPLAY.md §7 takes the version from the build
+// macro, and CANTICK_FW_VERSION holds two periods, thus the splash needs this
+// glyph. Bit 4 is the bottom row, and column 1 centers the dot.
+const uint8_t FONT_PERIOD[3] = {0, 16, 0};
+
 }  // namespace
 
 namespace matrix {
@@ -54,12 +60,14 @@ int xyToIndex(int x, int y, uint8_t preset)
   return x * MATRIX_HEIGHT + y;
 }
 
-// ── Ported from reference/CANtick_feedback.ino, unchanged ────────────────────
+// ── Ported from reference/CANtick_feedback.ino ───────────────────────────────
+// One branch is added for the period. Every ported glyph stays byte-identical.
 void glyph(char ch, uint8_t o[3])
 {
   if (ch >= 'a' && ch <= 'z') ch -= 32;
   if (ch >= '0' && ch <= '9')      { o[0]=FONT_DIGITS[ch-'0'][0]; o[1]=FONT_DIGITS[ch-'0'][1]; o[2]=FONT_DIGITS[ch-'0'][2]; }
   else if (ch >= 'A' && ch <= 'Z') { o[0]=FONT_ALPHA[ch-'A'][0]; o[1]=FONT_ALPHA[ch-'A'][1]; o[2]=FONT_ALPHA[ch-'A'][2]; }
+  else if (ch == '.')              { o[0]=FONT_PERIOD[0]; o[1]=FONT_PERIOD[1]; o[2]=FONT_PERIOD[2]; }
   else { o[0]=o[1]=o[2]=0; }
 }
 
