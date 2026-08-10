@@ -1,4 +1,4 @@
-// Host tests for the front panel rendering primitives (Matrix-TODO.md Phase 2).
+// Host tests for the front panel rendering primitives.
 //
 // ── The oracle comes from DISPLAY.md §1, not from src/matrix.cpp ─────────────
 //

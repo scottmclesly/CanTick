@@ -1,8 +1,8 @@
-// Phase 0 scaffold test (Matrix-TODO.md).
+// Host build scaffold test.
 //
 // This test proves that the host test build runs. It tests no firmware code.
-// The real tests arrive with the pure units: xyToIndex and the 3x5 font in
-// Phase 2, the load estimator in Phase 3, the card queue in Phase 4.
+// The pure units carry their own suites: matrix, bus_load, cards, strips and
+// panel.
 
 #include <unity.h>
 

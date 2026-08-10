@@ -1,4 +1,4 @@
-// Host tests for the idle layout (Matrix-TODO.md Phase 5).
+// Host tests for the idle layout.
 //
 // ── The oracle comes from DISPLAY.md §2, §3 and §4 ───────────────────────────
 //

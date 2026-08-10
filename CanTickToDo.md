@@ -31,15 +31,32 @@ native TinyUSB CDC for clean USB provisioning.
 **Board facts (confirmed):** MCP2515 controller (SPI), SN65HVD230 transceiver,
 CANH/CANL 3-pin terminal, classical CAN only (no CAN-FD).
 
-**MUST VERIFY before writing bit-timing:**
-- [ ] **MCP2515 crystal frequency (8 MHz vs 16 MHz).** Read the silkscreen /
-      schematic. Wrong value → wrong bit timing → no comms or wrong bitrate.
-- [ ] **Onboard 120 Ω termination present?** CanTick taps an *already-terminated*
-      bus, so it must **not** add termination — unless deliberately used as an
-      end node. Find the term jumper / resistor and document its default.
-- [ ] Confirm which XIAO GPIO the board maps to **MCP2515 INT** (needed for
-      interrupt-driven RX; polling will drop frames under load).
-- [ ] Confirm SPI pin mapping (SCK/MOSI/MISO/CS) as fixed by the board.
+**Answered. The result lives in CLAUDE.md "Hardware facts", which is the
+authority. This list is kept for the record only:**
+- [x] **MCP2515 crystal frequency.** 16 MHz, `CANTICK_MCP_CLOCK`.
+- [x] **Onboard 120 Ω termination.** Pad `P1` on the back, left open by the
+      factory. The tapped bus is already terminated, thus `P1` stays open.
+- [x] **MCP2515 INT.** The board routes it to no XIAO pad. The RX path is a
+      polling loop on core 1 for that reason.
+- [x] **SPI pin mapping.** `CS = D7`; SCK, MOSI and MISO are the XIAO defaults.
+
+---
+
+### Carry-forward from the front panel effort
+
+Both are open. Neither blocks the S3, and neither is to be acted on now.
+
+- [ ] **The C6 is unflashed and untested.** Every panel build so far ran on the
+      S3. The C6 is gated on two things: the HAT solder-joint reflow, and the
+      WiFi-versus-NeoPixel reset fault, which is still open. The status pixel
+      backend and the `CANTICK_STATUS_ON_MATRIX` flag are written and they
+      compile for the C6, but nothing has run on that board.
+- [ ] **The S3 antenna question, before any decision to drop the C6 variant.**
+      Answer on the bench whether this board has a working onboard antenna or
+      expects the external u.FL whip. Test at the real distance from the Pi, in
+      the mounted enclosure, not bench-adjacent. The C6 was carried as the
+      alternative for a noisy 2.4 GHz environment, thus the antenna result is
+      the input to keeping or dropping it.
 
 ---
 

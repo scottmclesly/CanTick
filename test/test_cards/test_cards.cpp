@@ -1,4 +1,4 @@
-// Host tests for the card model and queue (Matrix-TODO.md Phase 4).
+// Host tests for the card model and queue.
 //
 // ── The oracle comes from DISPLAY.md §6, §5 and §7 ───────────────────────────
 //

@@ -1,4 +1,4 @@
-// Host tests for the panel scheduler (Matrix-TODO.md Phase 6).
+// Host tests for the panel scheduler.
 //
 // ── The oracle comes from DISPLAY.md §2, §3 rule 11 and §6 ───────────────────
 //

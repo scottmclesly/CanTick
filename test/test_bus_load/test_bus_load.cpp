@@ -1,4 +1,4 @@
-// Host tests for the bus load estimate (Matrix-TODO.md Phase 3).
+// Host tests for the bus load estimate.
 //
 // ── The oracle comes from DISPLAY.md §3 rule 12 ──────────────────────────────
 //
