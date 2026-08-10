@@ -57,7 +57,9 @@
 #define CANTICK_GLYPH_ADVANCE     (CANTICK_FONT_WIDTH + 1)  // one blank column between glyphs
 
 // Brightness cap (DISPLAY.md §3 rule 10). It applies after the card color.
-#define CANTICK_MATRIX_BRIGHTNESS 32        // of 255, set on the mounted S3
+#define CANTICK_MATRIX_BRIGHTNESS 20        // of 255, set on the mounted S3.
+                                            // The floor is 11: below that the last
+                                            // decay column computes to zero.
 
 // Animation tick (DISPLAY.md §3 rule 11). Call show() one time per tick, and
 // only when the frame changes. A continuous show() corrupts the signal.

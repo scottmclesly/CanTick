@@ -95,18 +95,20 @@ Card text draws at row 0. The font is 5 rows, thus row 5 stays free.
     needs the load at the threshold plus 5 % or more, and a fall needs the load
     at the threshold minus 5 % or less.
     The 5 % band applies to every threshold except the HIGH to PULSE edge at
-    95 %. That edge has no band, and the 500 ms dwell alone holds it steady. A
-    band there is wider than the gap between the two thresholds, which makes
-    the 95 % to 100 % pulse ramp unreachable on a rising load.
+    95 %. That edge has no band, and the 500 ms dwell alone holds it steady.
+    The 90 % and 95 % thresholds sit 5 % apart, thus a 5 % band on each side
+    would overlap them.
     The load estimate has no cap at 100 %. A value above 100 % means the
     provisioned bitrate does not match the bus. That is a diagnostic finding,
     and the device does not hide it.
-13. The global brightness cap is 32 of 255. It is a tunable in `config.h`. A
+13. The global brightness cap is 20 of 255. It is a tunable in `config.h`. A
     bench check on the mounted S3 set this value.
+    The floor is 11. Below that the last decay column computes to zero, and the
+    4-column mark becomes a 3-column mark in silence.
 
 ## 4. Strip behavior
 
-An idle strip with no traffic is dark. Do not draw a placeholder arrow.
+An idle strip with no traffic is dark. Do not draw a placeholder mark.
 
 One message is one mark, and one mark is a single pixel. It has no shape. It
 takes one column and one row.
@@ -135,10 +137,9 @@ takes no separate color of its own.
 The traffic color carries the bus speed. The divider is unlit, thus the color
 of the marks is the only place the speed shows on the idle layout.
 
-The direction is read from motion.
-
-Rule 7 is the density rule. Messages queue, each step consumes one, and the
-density follows the message rate with no separate formula.
+The direction is read from motion. The head is the brightest column and the
+decay trails away from the travel, thus a still frame names the direction with
+no motion at all. A host test holds that property.
 
 The strip speed has two steps only:
 
@@ -147,17 +148,20 @@ The strip speed has two steps only:
 | Below 50 % | One pixel each 4 ticks |
 | 50 % and above | One pixel each tick |
 
-*[Recommendation, not confirmed by Scott. Overrule if you want a smooth ramp.]*
+The renderer reads the load band in one place only: this step-rate interval, at
+the 50 % boundary. Four bands compute, and two pictures exist. Below 50 % the
+strip steps slowly, and at 50 % and above it steps once each tick. The HIGH and
+PULSE bands are retained for a future rule. They are not visible today.
 
 Nothing in the renderer reads the load band for a shade. A single pixel with a
 gradient has no shade left to give: every attempt to take some either inverts
-the mark or eats its tail. The band still gates the step rate, and the step rate
-plus the density carry the load on their own. At 92 % load the strip holds 9.6
-of its 10 columns, which is saturation showing itself with nothing dimming.
+the mark or eats its tail. The density and the step rate carry the load on
+their own. At 92 % load the strip holds 9.6 of its 10 columns, which is
+saturation showing itself with nothing dimming.
 
 ### Missing tooth
 
-Two counters drive the missing arrow:
+Two counters drive the missing mark:
 
 - A failed `canlink::send()` blanks one slot on the outbound strip.
 - An increase of the drop counter blanks one slot on the inbound strip.
@@ -260,8 +264,6 @@ An overflow drops the oldest waiting card first, and the new card then lands
 under its own rule. Thus an overflow never drops the bus-error card that caused
 it.
 
-*[This rule is new. A build needs it. Change it if you want a different order.]*
-
 ## 7. Boot
 
 The splash is two cards: `CANTick`, then `V` plus `CANTICK_FW_VERSION`. Each
@@ -281,9 +283,17 @@ open. Do not run an animation through a connect attempt.
 
 ## 8. Accepted risks
 
-The WiFi green and the 100 kbit/s green are one color. The WiFi red and the
-500 kbit/s red are one color. Cards are full-panel and sequential, thus the
-context separates them. Color-blind users read the text, not the color.
+Several elements share a color, and the traffic is now one of them:
+
+- The 100 kbit/s green is the WiFi-connected card green and the `STREAMING`
+  status pixel green.
+- The 500 kbit/s red is the bus-error card red and the fault-latch red.
+
+The traffic is continuous, thus a shared color is no longer separated by
+sequence alone. The risk is accepted because position and motion separate the
+three: traffic moves along a strip, a card owns the whole panel and nothing
+else shows while it scrolls, and the status pixel is one fixed corner. A
+color-blind user reads the card text and the motion, not the hue.
 
 ## 9. Code notes
 
@@ -295,6 +305,7 @@ The C6 has no usable onboard LED. The `status_led` state machine drives the
 matrix on that variant. Keep one state machine. Add an output backend only.
 
 Write every new number in `config.h` with a `CANTICK_` prefix.
+
 ## 10. Status pixel
 
 The C6 has no usable onboard LED, thus the matrix is the status output on that
@@ -321,7 +332,7 @@ the phase, and it darkens the pixel off the phase.
 
 The fault latch wins over the state.
 
-The panel draws the status pixel last, on top of a card or a strip, thus
-nothing hides it.
+The panel draws the status pixel last, thus nothing can paint over it. Nothing
+tries: card text holds rows 0 to 4, and the idle layout leaves row 5 dark.
 
 The S3 has an onboard LED, thus that variant draws no status pixel.

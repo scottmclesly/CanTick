@@ -96,9 +96,18 @@ The repository has three environments: `s3`, `c6` and `native`. A bare
 `pio run` builds both boards. It skips `native`, because `native` has no
 firmware to build.
 
-Select one board with `-e s3` or `-e c6`. Do not add a preprocessor switch that
-makes one source file serve two pin maps in silence. Keep the pin map per
-environment and visible.
+Select one board with `-e s3` or `-e c6`.
+
+The pin map is not per environment, and it needs no preprocessor branch. It
+stays in [include/config.h](include/config.h) in XIAO pad names: `D7` for the
+CAN chip select, `D0` for the matrix. Each board variant header resolves a pad
+name to its own GPIO. `D7` is 44 on the S3 and 17 on the C6, thus one visible
+pin map serves both boards. Do not add a switch that makes one source file
+serve two pin maps in silence.
+
+A variant difference that is not a pin map takes a build flag in
+`platformio.ini`, where it is visible per environment.
+`CANTICK_STATUS_ON_MATRIX` is the one in service.
 
 `pio run` builds. `-t upload` flashes over the native USB-C port.
 `device monitor` opens the serial port at 115200 baud.
@@ -167,7 +176,7 @@ not run an authentication command here.
 | `matrix` | [src/matrix.cpp](src/matrix.cpp) | WS2812B front panel: frame buffer, 3×5 font, token scroll |
 | `bus_load` | [src/bus_load.cpp](src/bus_load.cpp) | Bus load estimate, hysteresis band, dwell. Pure, no clock |
 | `cards` | [src/cards.cpp](src/cards.cpp) | Card model and queue. Card order, not card pixels |
-| `strips` | [src/strips.cpp](src/strips.cpp) | Idle layout: two 3-row traffic strips, shade pairs, missing tooth |
+| `strips` | [src/strips.cpp](src/strips.cpp) | Idle layout: two 2-row traffic strips, single-pixel marks with a decay, missing tooth |
 | `panel` | [src/panel.cpp](src/panel.cpp) | 20 Hz tick, card scroll, frame-change gate, the one driver seam |
 | `panel_hw` | [src/panel_hw.cpp](src/panel_hw.cpp) | NeoPixel driver, matrix task, counter deltas. The only file that touches the panel hardware |
 
@@ -188,8 +197,9 @@ Task placement is deliberate. Keep it.
 | `led` | 0 | 1 | Blink patterns |
 | `loop()` | 0 | — | USB-CDC provisioning only |
 
-The `matrix` row is **unconfirmed on hardware**. Confirm it on the bench, then
-remove this line.
+The `matrix` row is **confirmed on the S3**: core 0, priority 4, a 50 ms period,
+across thirteen flashed builds with no reset and no timing fault. The C6 is
+untested, and its WiFi and NeoPixel conflict is still open.
 
 Core 1 drains the CAN controller. Core 0 runs the WiFi stack. A bounded queue
 of `CANTICK_RX_QUEUE_LEN` frames sits between them. On overflow the queue drops
@@ -211,8 +221,10 @@ The heartbeat field `drop` is a sum of two independent counters:
   exact count. The driver gives no public flag clear.
 - `net::dropCount()` counts frames that the full outbound queue discarded.
 
-A failed bus transmission is not a drop. `canlink::send()` reports that failure
-through its return value only.
+A failed bus transmission is not a drop, and it never reaches the heartbeat.
+`canlink::send()` reports the failure through its return value, and
+`canlink::txFailCount()` records it. That count feeds the missing tooth on the
+outbound strip, and nothing else reads it.
 
 ## Safety invariants
 
@@ -240,9 +252,10 @@ If a request needs a change to one of these rules, tell the user first.
 
 ## LED matrix
 
-The front panel is a Seeed 6×10 WS2812B RGB matrix. It is the next work area.
-These values come from bench calibration on the mounted enclosure. They are
-locked. Do not derive them again, and do not change one without the user.
+The front panel is a Seeed 6×10 WS2812B RGB matrix. The visual language is
+locked and built, and DISPLAY.md is its authority. These values come from bench
+calibration on the mounted enclosure. They are locked. Do not derive them
+again, and do not change one without the user.
 
 | Item | Value |
 |---|---|
@@ -265,8 +278,10 @@ Rules for this subsystem:
 - Do not build an abstraction layer over the matrix. Copy the pattern that
   works on the bench, and keep it flat and short. A previous attempt failed
   through over-engineering.
-- The panel has two layouts: two 3-row traffic strips when idle, and one
-  full-panel card. Read DISPLAY.md before you draw anything.
+- The panel has two layouts. The idle layout is two 2-row traffic strips with
+  an unlit divider row between them: rows 0 and 1 inbound, row 2 dark, rows 3
+  and 4 outbound, row 5 dark. The card layout is one full-panel card. Read
+  DISPLAY.md before you draw anything.
 
 ### The matrix is the status LED on C6
 
@@ -293,8 +308,13 @@ DISPLAY.md §5 holds the card vocabulary.
 ### DISPLAY.md
 
 [DISPLAY.md](DISPLAY.md) is the authority for the display. It is locked. It
-holds the panel layout, the animation rules, the load estimate, the card
-vocabulary with RGB values, the card queue and the boot sequence.
+holds the panel layout, the mark and its decay, the animation rules, the load
+estimate, the card vocabulary with RGB values, the card queue, the boot
+sequence and the C6 status pixel.
+
+It also holds a "Rejected on the mounted S3" list in §4. Every design on it was
+built, seen on the panel and rejected, with the measurement that killed it. Do
+not reopen one without a new bench check.
 
 Read it before you touch the display. Do not put a display decision in this
 file. Record every new display decision in DISPLAY.md.
@@ -303,15 +323,17 @@ DISPLAY.md is an authority document, not a scratchpad. It does not expire.
 PROTOCOL.md does not cover the display, because the display is device-local and
 crosses no wire. A change to DISPLAY.md does not move the contract version.
 
-Four rules in DISPLAY.md carry a `[Recommendation, not confirmed by Scott]`
-mark. Build against them as they are. They are decisions, not open questions.
+Two rules in DISPLAY.md carry a `[Recommendation, not confirmed by Scott]`
+mark: the missing tooth in §4 and the bus-error clear condition in §5. Build
+against them as they are. They are decisions, not open questions. The step rate
+and the card queue carried the mark until the bench confirmed both.
 
 ### Runtime placement
 
 DISPLAY.md sets a 20 Hz animation tick. The matrix task runs on core 0 at
 priority 4, below `net`. A WS2812B write is timing-critical, thus it must not
 run on core 1 against the CAN drain. The runtime table holds the placement, and
-it is unconfirmed on hardware.
+the S3 confirms it. The C6 is untested.
 
 `busload::Band` uses a `BAND_` prefix on every value. Arduino defines `LOW` and
 `HIGH` as macros, and a macro ignores a namespace. A bare `LOW` in that enum
